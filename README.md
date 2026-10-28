@@ -1,14 +1,15 @@
-# OEJN Noise & Population Data — A5 + A6
+# OEJN Noise & Population — A5 + A6 + Doc 29 noise model
 
 Part of the **OEJN Noise–Fuel–Capacity** research (Jeddah, RWY 34C/34L departures, prototype day **1 October 2026**).
-This repository holds the two preprocessed layers the **noise model** is built on:
+This repository holds the two preprocessed layers (A5, A6) and the **Doc 29 noise model** that runs on the observed A2 departures:
 
 | Layer | What it answers | Release | Status |
 |---|---|---|---|
 | **A5 — aircraft noise data** | For an observed aircraft: which ANP aircraft, which noise curves (NPD), which correction (Δ dB), and how confident are we? | `a5-anp2.3-doc29e5-v1` | ✅ 0 errors · 106 checks passed · Doc 29 Vol 3 reproduced to 1.3 × 10⁻¹³ dB |
 | **A6 — population exposure** | Where do people live, and how many, at 100 m resolution? | `a6-worldpop-r2025a-2026-v1` | ✅ 0 errors · 23 checks passed · population conserved exactly |
+| **Noise model** (`src/noise/`) | SEL / LAmax per observed departure, LAeq,24h, Lden, Lnight, N60/65/70, and people exposed | `noise-doc29e5-oejn-2026-10-01-v1` | ✅ code validated: Vol 3 B-2 (3,516 segments) ≤ 1.4 × 10⁻³ dB · B-1 ≤ 4.9 × 10⁻³ dB · D-2 thrust 119/119 · Table D-4 < 0.1 dB · end-to-end observed-track test ≤ 0.05 dB. ⏳ waiting for the 1-Oct A2 extract, METAR and A3 identity files |
 
-Tests: **33 / 33 pass** (`tests/`). Independent re-implementation check for A5: **15 / 15** (`scripts/verify_a5_independent.py`).
+Tests: **50 / 50 pass** (`tests/`: A5 21, A6 12, noise 17). Independent re-implementation check for A5: **15 / 15** (`scripts/verify_a5_independent.py`).
 
 **Creative output — OEJN Noise Atlas:** `docs/atlas/OEJN_Noise_Atlas.html` (open in any browser). An aeronautical-chart
 style map of population under the 16 published departure routes, an NPD explorer per fleet type, the engine/weight effect
@@ -62,8 +63,15 @@ data/a6/           processed/ (receptors, grids, rings, clipped GeoTIFF) · vali
 docs/a5/           methodology · integration contract · decisions log · data dictionary
 docs/a6/           methodology
 docs/atlas/        OEJN Noise Atlas (stand-alone HTML) + its data
-scripts/           independent A5 verification · A6 study-area extractor · atlas data builder
-tests/             test_a5.py (21) · test_a6.py (12)
+src/noise/         doc29 (segment levels) · atmosphere (App. D) · performance (App. B) · flightpath (Ch. 3, observed tracks)
+                   · site (OEJN frame, heights, CAS) · weather (METAR) · event (SEL/LAmax) · run (pipeline, metrics, exposure)
+config/noise.yaml  noise-model run configuration
+data/external/     A1 runway table (AIP AMDT 10/26) used for start of roll / elevations
+data/noise/        processed/ (grid, GeoTIFF, exposure, per-flight results) · validation/ (QC, manifest) · interim/ (git-ignored)
+docs/noise/        methodology_noise.md
+scripts/           independent A5 verification · A6 study-area extractor · atlas data builder · A2 noise extract ·
+                   Colab METAR/A3 fetch · synthetic noise inputs (pipeline testing only)
+tests/             test_a5.py (21) · test_a6.py (12) · test_noise.py (17) · fixtures/doc29_vol3 (Vol 3 reference tables)
 ```
 
 ---
@@ -107,13 +115,24 @@ Study area **20–23° N, 38–41° E** = the A2 ADS-B box and the A4 ERA5 grid 
 
 ---
 
+## Noise model — run it
+
+```bash
+# 1. A2 owner (machine with SANS-output/a2/2026-10-01):  python scripts/a2_noise_extract.py <a2_output_dir> data/inputs/a2
+# 2. Colab (internet):                                   python scripts/colab_external_data.py data/inputs/a2/a2_noise_flights.csv data/inputs
+# 3. here:
+PYTHONPATH=src python -m noise.run          # outputs in data/noise/processed + data/noise/validation
+```
+Method, assumptions and limits: [`docs/noise/methodology_noise.md`](docs/noise/methodology_noise.md). Main assumptions are full
+take-off thrust, start of roll at the threshold, flat terrain, and departures only on one day.
+
 ## Open items before the noise model can produce final 1-Oct results
 
 | # | Item | Owner |
 |---|---|---|
 | 1 | Engine type (+ MTOW option) per airframe from ICAO24 | A3 |
-| 2 | Relative humidity (ERA5 2 m dewpoint / METAR OEJN) — 17 of 24 hours were ≥ 30 °C, outside the Doc 29 NPD envelope, so the Appendix D atmospheric adjustment is required | A4 |
-| 3 | QNH-corrected heights (ADS-B barometric altitude is a pressure altitude) | A2 / A4 |
+| 2 | METAR OEJN for 1 Oct (temperature, dew point → RH, QNH): `scripts/colab_external_data.py`. The Appendix D adjustment and the QNH height conversion are implemented in `src/noise/` | A4 / Colab |
+| 3 | A2 trajectory extract for the noise model: `scripts/a2_noise_extract.py` | A2 |
 | 4 | Certified levels for A339 / B78X / B39M (EASA certification noise levels) | A5 |
 | 5 | Request EASA verified ANP dataset | A5 |
 | 6 | AIP inconsistencies found while digitising SIDs (e.g. EGPOB3X lists JN300 vs JN390) | A1 |
@@ -131,8 +150,11 @@ team data repository). WorldPop data: CC BY 4.0 — cite *WorldPop (www.worldpop
   - دالة NPD أعادت نتائج ECAC الرسمية بفرق 10⁻¹³ dB.
 - **A6 (السكان):** خريطة WorldPop 2026 بدقة 100 م تحوّلت إلى 1,034,281 نقطة سكانية، كل نقطة فيها عدد سكانها وإحداثياتها بنظام UTM.
   - بدون أي إعادة عيّنة، ومجموع السكان (8.11 مليون) محفوظ بالضبط.
-- **المطلوب من بقية الفريق:**
-  - A3: نوع المحرك لكل طيارة.
-  - A4: الرطوبة.
-  - A2/A4: تصحيح الارتفاع بالـ QNH.
+- **نموذج الضجيج (`src/noise/`):** طبّقنا Doc 29 كاملاً على المسارات الفعلية من A2.
+  - من بيانات ADS-B نستخرج: نقطة الإقلاع، ومرحلة الدحرجة على المدرج، والارتفاع (GNSS أو الضغطي مصحّح بالـ QNH)، والسرعة، والدفع (معادلات Appendix B).
+  - ومنها نحسب SEL و LAmax لكل رحلة، ثم LAeq و Lden و Lnight و N70، وعدد السكان المتأثرين.
+  - تحقّقنا منه على كل الحالات المرجعية في Vol 3: فرق ≤ 0.002 dB للمقاطع، وأقل من 0.05 dB في الاختبار الكامل من "مسار مرصود".
+- **المطلوب لتشغيله على يوم 1 أكتوبر:**
+  - A2: ملفات `a2_noise_extract.py`.
+  - من Colab: METAR (الحرارة ونقطة الندى، ومنها الرطوبة، والـ QNH)، وهوية الطيارات (النوع والمحرك).
 - **المخرج الإبداعي:** `docs/atlas/OEJN_Noise_Atlas.html`، افتحوه في المتصفح.
