@@ -1,0 +1,80 @@
+{
+  "release_id": "a6-worldpop-r2025a-2026-v1",
+  "built_utc": "2026-10-28T19:35:35+00:00",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v180-x86_64-with-glibc2.39",
+  "packages": {
+    "pandas": "3.0.5",
+    "numpy": "2.5.3",
+    "rasterio": "1.5.2"
+  },
+  "source_sha256": "3ed9bc9ad51cd99d75461816e6c01ad71d466303adaab0809d1a989aabe57410",
+  "study_window": {
+    "west": 37.999999128,
+    "east": 41.00083244933,
+    "south": 19.999166922669986,
+    "north": 23.000000243999985,
+    "col_off": 4206,
+    "row_off": 10986,
+    "width": 3601,
+    "height": 3601
+  },
+  "receptors": 1034281,
+  "study_area_population": 8114810.242199444,
+  "national_population": 34868383.6643698,
+  "source_mode": "study_area_extract",
+  "rings": [
+    {
+      "radius_km": 5,
+      "population": 143591.94028842077,
+      "populated_cells": 7726
+    },
+    {
+      "radius_km": 10,
+      "population": 798291.695628046,
+      "populated_cells": 28967
+    },
+    {
+      "radius_km": 15,
+      "population": 1599007.8965086015,
+      "populated_cells": 55897
+    },
+    {
+      "radius_km": 20,
+      "population": 2133792.6177053954,
+      "populated_cells": 82951
+    },
+    {
+      "radius_km": 30,
+      "population": 3089165.284144891,
+      "populated_cells": 136283
+    },
+    {
+      "radius_km": 40,
+      "population": 3720546.0504246284,
+      "populated_cells": 191053
+    },
+    {
+      "radius_km": 60,
+      "population": 4133741.375849532,
+      "populated_cells": 294089
+    },
+    {
+      "radius_km": 80,
+      "population": 5569182.63584384,
+      "populated_cells": 407146
+    },
+    {
+      "radius_km": 100,
+      "population": 6729673.863850548,
+      "populated_cells": 522159
+    }
+  ],
+  "qc_counts": {
+    "PASS": 23,
+    "INFO": 4,
+    "WARNING": 0,
+    "ERROR": 0,
+    "UNRESOLVED": 0
+  }
+}

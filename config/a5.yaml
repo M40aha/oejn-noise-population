@@ -1,0 +1,93 @@
+# A5 — Aircraft noise data layer: build configuration
+# Every policy that could reasonably differ between studies lives here, not in code.
+
+release_id: "a5-anp2.3-doc29e5-v1"
+
+# Raw source folder (never modified). Relative to this repository root.
+# Default assumes the team data repo is cloned next to this one. Override with env var A5_RAW_DIR.
+raw_dir: "../OEJN-Noise-Fuel-Capacity/A5"
+
+# Expected SHA-256 of every raw source. A mismatch is an ERROR (the data changed).
+# Hashes recorded on 2026-10-27 from the repository commit 08ac0b9.
+sources:
+  anp_tables:
+    file: easa_anp_legacy_v2.3_tables.zip
+    publisher: EASA
+    title: "ANP database (legacy format) — 10 CSV tables"
+    version: "2.3"
+    date: "2020-10-14"
+    sha256: 6147f05ea50f57df816ad2bbf8a1e870bcc74f253fb32bfeea5f468ea85d852f
+  anp_release_note:
+    file: easa_anp_legacy_v2.3_release_note.pdf
+    publisher: EASA
+    title: "ANP database version 2.3 — Release notes"
+    version: "2.3"
+    date: "2020-10-14"
+    sha256: 13a362b3746505a764029a258c9c34cc206d7f097dfff04a8a26512ae1c833d9
+  easa_substitutions:
+    file: easa_anp_aircraft_substitutions.xlsx
+    publisher: EASA
+    title: "ANP aircraft substitution tables"
+    version: "baseline ANP 2.2 (revision 22-02-2018, per workbook 'read me')"
+    date: "2018-02-22"
+    sha256: 2691383eecae1bafb9995e315da1a817dc57c3f0390251ed403396784cd54ac2
+  easa_verified_types:
+    file: easa_verified_anp_aircraft_types.xlsx
+    publisher: EASA
+    title: "List of aircraft types with EASA-verified ANP data (list only, not data)"
+    version: "as downloaded 2026-10-20"
+    date: "2026-10-20"
+    sha256: 7deb81b6bc2957ab97bdfa6bafd027fdf926a215ed486813fe47a0dda7209821
+  doc29_vol1:
+    file: ecac_doc29_5e_vol1_applications.pdf
+    publisher: ECAC
+    title: "Doc 29 5th Edition, Volume 1 — Applications Guide"
+    version: "5th Edition (endorsed DGCA/166, 19 May 2026); PDF metadata title wrongly says 4th Edition"
+    date: "2026-05-19"
+    sha256: c6b05442fa67870b8f03ca7d3c81757d29f385c7ae4ab2f14098370bc637dbc0
+  doc29_vol2:
+    file: ecac_doc29_5e_vol2_technical.pdf
+    publisher: ECAC
+    title: "Doc 29 5th Edition, Volume 2 — Technical Guide"
+    version: "5th Edition (endorsed DGCA/166, 19 May 2026); PDF metadata title wrongly says 4th Edition"
+    date: "2026-05-19"
+    sha256: 35117d393c52b4bd451d566c57d45038d00f047079e1d06fc376d27dd7a4ef01
+  doc29_vol3:
+    file: ecac_doc29_5e_vol3_reference.pdf
+    publisher: ECAC
+    title: "Doc 29 5th Edition, Volume 3 — Reference cases and verification framework"
+    version: "5th Edition (endorsed DGCA/166, 19 May 2026); PDF metadata title wrongly says 4th Edition"
+    date: "2026-05-19"
+    sha256: d4a351d93df13c36f4ad6809fc1cc3d16182d44c3af48c6664db44f3d838f071
+  doc29_vol3_wb1:
+    file: ecac_doc29_5e_vol3_workbook_part1.xlsx
+    publisher: ECAC
+    title: "Doc 29 5th Ed. Vol 3 Part 1 workbook — noise model reference cases"
+    version: "5th Edition"
+    date: "2026-05-19"
+    sha256: 59cdb927840168ffab446e7d29c62973346abd87b2e881326d3f7ad058beddc3
+  doc29_vol3_wb2:
+    file: ecac_doc29_5e_vol3_workbook_part2.xlsx
+    publisher: ECAC
+    title: "Doc 29 5th Ed. Vol 3 Part 2 workbook — aircraft performance reference cases (open read-only)"
+    version: "5th Edition"
+    date: "2026-05-19"
+    sha256: ddad40f9db322e111ef792499d18589f8d74b2d7e1e545c3fd97e9824f11285f
+
+policies:
+  anp_release: "2.3"            # baseline. A verified EASA dataset is a separate release, never mixed row-by-row.
+  npd:
+    distance_floor_m: 30.0      # Doc 29 Vol 2 p.29: "recommended" lower limit d = max(d, 30 m)
+    power_floor_lb_per_engine: 1.0   # Doc 29 Vol 2 p.28: negative/low CNT reset to 1 lb per engine
+    power_extrapolation_warn_db: 5.0 # Doc 29 Vol 2 p.28: caution if extrapolation adds > 5 dB beyond envelope
+  mapping:
+    substitution_method: "A"    # A = dB adjustment of proxy NPD (all metrics). B = movement factor N (energy metrics only).
+    unknown_mtow_rule: "max"    # Doc 29 Vol 1 p.45: assume the highest-MTOW variant
+    unknown_engine_rule: "conservative"  # highest certified departure level at max MTOW (Doc 29 Vol 1 p.45)
+    mtow_match_tolerance_kg: 0.5
+    engine_family_min_chars: 5  # minimum length for prefix (engine-family) matching
+
+tolerances:
+  vol3_b2_baseline_sel_max_abs_db: 0.01   # ERROR above this (Vol 3: reproduce to the precision presented; dRMS aim 0.01 dB)
+  vol3_b2_baseline_sel_target_db: 0.001   # WARNING above this
+  unit_conversion_rel: 1.0e-12

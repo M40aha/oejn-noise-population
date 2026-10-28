@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+.DS_Store
+docs/atlas/_preview.html
+# raw source data lives in the team data repository (OEJN-Noise-Fuel-Capacity), never here
+raw/
+*.zip

@@ -1,0 +1,11 @@
+# Versions used to build releases a5-anp2.3-doc29e5-v1 and a6-worldpop-r2025a-2026-v1
+# Requires Python >= 3.11 (built and tested on 3.13)
+pandas==3.0.5
+numpy==2.5.3
+openpyxl==3.1.5
+pyyaml==6.0.3
+duckdb==2.0.0
+pyarrow==26.0.0
+rasterio==1.5.2
+pyproj==3.8.0
+pytest==9.1.1

@@ -1,0 +1,138 @@
+# OEJN Noise & Population Data — A5 + A6
+
+Part of the **OEJN Noise–Fuel–Capacity** research (Jeddah, RWY 34C/34L departures, prototype day **1 October 2026**).
+This repository holds the two preprocessed layers the **noise model** is built on:
+
+| Layer | What it answers | Release | Status |
+|---|---|---|---|
+| **A5 — aircraft noise data** | For an observed aircraft: which ANP aircraft, which noise curves (NPD), which correction (Δ dB), and how confident are we? | `a5-anp2.3-doc29e5-v1` | ✅ 0 errors · 106 checks passed · Doc 29 Vol 3 reproduced to 1.3 × 10⁻¹³ dB |
+| **A6 — population exposure** | Where do people live, and how many, at 100 m resolution? | `a6-worldpop-r2025a-2026-v1` | ✅ 0 errors · 23 checks passed · population conserved exactly |
+
+Tests: **33 / 33 pass** (`tests/`). Independent re-implementation check for A5: **15 / 15** (`scripts/verify_a5_independent.py`).
+
+**Creative output — OEJN Noise Atlas:** `docs/atlas/OEJN_Noise_Atlas.html` (open in any browser). An aeronautical-chart
+style map of population under the 16 published departure routes, an NPD explorer per fleet type, the engine/weight effect
+on noise corrections, and the Doc 29 validation evidence.
+
+---
+
+## Quick start (for the next stage)
+
+```python
+import duckdb, pandas as pd, sys
+sys.path.insert(0, "src")
+from a5.npd import NPDLookup, NPDPolicy
+
+# A5: noise data
+con = duckdb.connect("data/a5/processed/a5-anp2.3-doc29e5-v1.duckdb", read_only=True)
+mapping = con.execute("select * from aircraft_noise_mapping").df()          # ICAO type -> ANP aircraft + Δ
+npd = NPDLookup(con.execute("select * from anp_npd_long").df(), NPDPolicy(),
+                dict(con.execute("select npd_id, power_parameter_kind from anp_aircraft").fetchall()))
+m = mapping.set_index("icao_type").loc["A20N"]
+level = npd.lookup(m.npd_id, "SEL", "D", power=20000, distance_ft=3000).level_db + m.delta_applied_db
+
+# A6: population receptors (one point per populated 100 m cell)
+rec = pd.read_parquet("data/a6/processed/a6_receptors.parquet")   # x_utm37n_m, y_utm37n_m, population, ...
+```
+For flights with engine / model / MTOW from A3: `a5.mapping.Mapper.resolve(records)` (see `docs/a5/integration_contract.md`).
+
+## Rebuild and verify
+
+```bash
+pip install -r requirements.txt
+# raw data = the team data repo (OEJN-Noise-Fuel-Capacity) cloned next to this one, or set A5_RAW_DIR / A6_RAW_DIR
+PYTHONPATH=src python -m a5.build
+PYTHONPATH=src python -m a6.build        # full WorldPop file, or the study-area extract (see below)
+PYTHONPATH=src python -m pytest -q tests
+python scripts/verify_a5_independent.py ../OEJN-Noise-Fuel-Capacity/A5
+PYTHONPATH=src python scripts/build_atlas_data.py
+```
+Builds are deterministic: rebuilding gives byte-identical tables (checked with content hashes in `output_manifest.csv`).
+**Colab:** `!PYTHONPATH=src python -m a5.build` etc. work unchanged.
+
+## Repository layout
+
+```
+config/            a5.yaml, a6.yaml — source hashes (locks), policies, tolerances. No magic numbers in code.
+src/a5/            ingest · schemas · anp_checks · npd · easa · mapping · vol3 · qc · report · build
+src/a6/            build (window read, receptors, aggregates, QC)
+src/viz/sids.py    the 16 published SIDs (for the atlas; checked against AIP leg distances)
+data/a5/           interim/ (typed, provenance) · processed/ (DuckDB + parquet) · validation/ (QC) · reviews/ (manual input)
+data/a6/           processed/ (receptors, grids, rings, clipped GeoTIFF) · validation/ (QC)
+docs/a5/           methodology · integration contract · decisions log · data dictionary
+docs/a6/           methodology
+docs/atlas/        OEJN Noise Atlas (stand-alone HTML) + its data
+scripts/           independent A5 verification · A6 study-area extractor · atlas data builder
+tests/             test_a5.py (21) · test_a6.py (12)
+```
+
+---
+
+## A5 — what was done and the rules followed
+
+Sources: EASA **ANP 2.3** (10 tables, 155 aircraft, 27,760 NPD points), **ECAC Doc 29 5th Edition** (May 2026, Vol 1–3 +
+workbooks), EASA substitution tables (19,565 certified configurations), EASA verified-types list.
+
+1. **Raw data never modified.** Every source file is locked by SHA-256; a change stops the build. ANP CSVs are read straight from the ZIP.
+2. **No silent assumptions.** Read as text, cast explicitly; a value that cannot be cast is an error. Whitespace fixes (339 cells) are logged with the original value.
+3. **Provenance on every row:** `src_file`, `src_member` (CSV/sheet), `src_row`.
+4. **Native ANP units** (lb, ft, kt, °C) kept, because Doc 29's thrust coefficients are defined in them; `units_registry` gives exact SI factors. Other stages exchange SI + UTC + WGS84.
+5. **Scope:** A5 holds data + mapping + NPD lookup only. Thrust, impedance, atmospheric absorption, duration, directivity, lateral attenuation and contours belong to the noise model.
+6. **NPD lookup = Doc 29 Vol 2 §4.2 exactly:** linear in power (Eq. 4-3), linear in log-distance (Eq. 4-4), extrapolation from end pairs (Eq. 4-5), power floor 1 lb/engine, distance floor 30 m, power extrapolation > 5 dB **flagged, never clipped**.
+7. **Mapping = Doc 29 Vol 1 §6.4.4:** EASA configuration (engine + MTOW) first, ICAO-code fallback; unknown engine/MTOW → **conservative** variant (highest MTOW, highest certified level). Δ applied by **Method A** (dB on NPD — valid for SEL *and* LAmax). Categorical confidence; every candidate kept.
+8. **Validation:** referential integrity across all tables, physics checks, exact long/wide round-trip, EASA internal consistency, and the **ECAC Vol 3 reference cases reproduced** (3,516 segments).
+
+**Findings the team should know**
+- **A320neo family:** engine unknown → A320-232, Δ = −3.5 dB (conservative). With engine + MTOW the configuration can be down to −8.3 dB. **A3 must supply engine type (and MTOW option if possible).**
+- **787-9:** Δ ranges −1.8 … +3.2 dB with the certified MTOW option, for the same engine.
+- **A339, B78X, B39M** are absent from EASA tables → proxies A330-343 / 7878R / 7378MAX, **pending** certified levels (`data/a5/reviews/analyst_proxies.csv`, Eq. 6-1). Not usable until filled; no silent Δ = 0.
+- **ANP 2.3 source inconsistency:** 5 default stage-length weights exceed MTOW (incl. A320-232, A321-232); preserved and flagged.
+- **EASA verified ANP data** exists for most of the OEJN fleet (A20N, A21N, A339, A35K, B789, B77W NPD) → request it from EASA.
+
+## A6 — what was done and the rules followed
+
+Source: **WorldPop Global2 R2025A v1, Saudi Arabia 2026, constrained, 100 m** (people per cell; CC BY 4.0).
+Study area **20–23° N, 38–41° E** = the A2 ADS-B box and the A4 ERA5 grid (one shared domain).
+
+1. **Never resample or reproject the raster** — values are counts; warping changes the total. The window is read pixel-aligned; the clipped GeoTIFF is bit-identical to the source.
+2. **Each populated cell → one receptor** at its pixel centre; only the point is projected to **UTM 37N (EPSG:32637)** for metre geometry.
+3. **Exact conservation:** receptor total = window total (`math.fsum`), and every aggregation grid conserves it.
+4. **Provenance:** each receptor keeps `(src_row, src_col)` in the national raster. Exact geodesic cell area (≈ 7,885–8,045 m²) and density per km².
+5. **Study-area extract** (`scripts/a6_extract_study_area.py`) for when the 55.8 MB file can't be moved: accepted only if its manifest ties it to the locked national file; a test proves it gives identical receptors.
+
+**Numbers:** 8.11 M people in 1,034,281 populated cells (23.3 % of Saudi Arabia's 34.87 M); 0.80 M within 10 km of the OEJN reference point, 3.72 M within 40 km.
+
+**Indicative route finding (atlas):** on the *published* tracks, the early RWY 34L legs pass over far more residents than 34C
+(≈ 84–110 k vs ≈ 7 k people within 3 km in the first 30 km). Flown trajectories (A2) and the noise model are needed before any conclusion.
+
+---
+
+## Open items before the noise model can produce final 1-Oct results
+
+| # | Item | Owner |
+|---|---|---|
+| 1 | Engine type (+ MTOW option) per airframe from ICAO24 | A3 |
+| 2 | Relative humidity (ERA5 2 m dewpoint / METAR OEJN) — 17 of 24 hours were ≥ 30 °C, outside the Doc 29 NPD envelope, so the Appendix D atmospheric adjustment is required | A4 |
+| 3 | QNH-corrected heights (ADS-B barometric altitude is a pressure altitude) | A2 / A4 |
+| 4 | Certified levels for A339 / B78X / B39M (EASA certification noise levels) | A5 |
+| 5 | Request EASA verified ANP dataset | A5 |
+| 6 | AIP inconsistencies found while digitising SIDs (e.g. EGPOB3X lists JN300 vs JN390) | A1 |
+
+## Licences and citation
+EASA ANP data and ECAC Doc 29 are used under their publishers' terms; raw files are **not** redistributed here (they live in the
+team data repository). WorldPop data: CC BY 4.0 — cite *WorldPop (www.worldpop.org) Global2 R2025A v1, University of Southampton*.
+
+---
+
+## ملخص بالعربي للفريق
+
+- **A5 (بيانات الضجيج):** بيانات EASA ANP 2.3 ومنهجية ECAC Doc 29 (الإصدار الخامس 2026) صارت جداول نظيفة ومترابطة، وكل صف فيها يرجع لمصدره.
+  - جدول ربط يحدد لكل نوع طيارة: البديل في ANP، ومنحنيات الضجيج، والتصحيح بالديسيبل، ودرجة الثقة.
+  - دالة NPD أعادت نتائج ECAC الرسمية بفرق 10⁻¹³ dB.
+- **A6 (السكان):** خريطة WorldPop 2026 بدقة 100 م تحوّلت إلى 1,034,281 نقطة سكانية، كل نقطة فيها عدد سكانها وإحداثياتها بنظام UTM.
+  - بدون أي إعادة عيّنة، ومجموع السكان (8.11 مليون) محفوظ بالضبط.
+- **المطلوب من بقية الفريق:**
+  - A3: نوع المحرك لكل طيارة.
+  - A4: الرطوبة.
+  - A2/A4: تصحيح الارتفاع بالـ QNH.
+- **المخرج الإبداعي:** `docs/atlas/OEJN_Noise_Atlas.html`، افتحوه في المتصفح.

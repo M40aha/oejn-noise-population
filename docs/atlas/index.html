@@ -1,0 +1,420 @@
+<title>OEJN Noise Atlas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: an aeronautical-chart sheet — one large plate (map) with a margin rail of route data,
+   then numbered "panels" like the tabular pages of an AIP. Magenta = RNAV routes, ochre = population. */
+:root{
+  --bg:#EDF1F2; --sheet:#F8FAFA; --ink:#14232B; --muted:#5A6A72; --rule:#C7D1D5;
+  --mag:#B4236E; --teal:#0B7782; --warn:#A35B00; --ok:#2F7D4A;
+  --p0:#F2E4BF; --p1:#E7B95A; --p2:#C9741F; --p3:#7E3410; --p4:#3B1606;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
+  --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
+  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
+  --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
+  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(2.6rem,6vw,4.4rem);font-weight:700}
+h2{font-size:1.7rem}
+h3{font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
+p{margin:0;max-width:68ch}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+header{display:grid;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:18px}
+.eyebrow{font:500 .78rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mag)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 .8rem/1 var(--mono);padding:7px 10px;border:1px solid var(--rule);border-radius:3px;background:var(--sheet);display:flex;gap:7px;align-items:center}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
+.chip.warn i{background:var(--warn)}
+.plate{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0;border:1px solid var(--ink);background:var(--sheet)}
+.mapbox{position:relative;min-width:0;border-right:1px solid var(--ink)}
+canvas#map{display:block;width:100%;height:auto;aspect-ratio:1/1.08;cursor:crosshair}
+.legend{position:absolute;left:12px;bottom:12px;background:var(--sheet);border:1px solid var(--rule);padding:8px 10px;font:500 .72rem/1.3 var(--mono);display:grid;gap:6px}
+.ramp{height:8px;width:150px;border:1px solid var(--rule)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--sheet);font:500 .74rem/1.35 var(--mono);padding:6px 8px;border-radius:2px;white-space:nowrap}
+.rail{display:flex;flex-direction:column;min-width:0}
+.rail-head{padding:14px 16px;border-bottom:1px solid var(--rule);display:grid;gap:10px}
+.seg{display:flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden;width:max-content}
+.seg button{font:600 .8rem/1 var(--mono);padding:8px 12px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
+.seg button:focus-visible,.sidrow:focus-visible,select:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
+.sids{overflow:auto;flex:1;max-height:640px}
+.sidrow{display:grid;grid-template-columns:76px 1fr 64px;gap:10px;align-items:center;padding:7px 16px;border:0;border-bottom:1px solid var(--rule);background:transparent;width:100%;text-align:left;color:var(--ink);cursor:pointer;font:inherit}
+.sidrow:hover,.sidrow[aria-pressed="true"]{background:color-mix(in srgb,var(--mag) 9%,transparent)}
+.sidrow b{font:600 .95rem/1 var(--display);letter-spacing:.03em}
+.bar{height:9px;background:var(--rule);position:relative}
+.bar span{position:absolute;inset:0 auto 0 0;background:var(--mag)}
+.sidrow.l .bar span{background:var(--teal)}
+.sidrow .num{font-size:.8rem;text-align:right}
+.detail{border-top:1px solid var(--ink);padding:14px 16px;display:grid;gap:8px}
+.detail svg{width:100%;height:auto;display:block}
+.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
+.panel{background:var(--sheet);border:1px solid var(--rule);padding:20px;display:grid;gap:14px;align-content:start;min-width:0}
+.panel.wide{grid-column:1/-1}
+.ph{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px}
+.ph .tag{font:500 .72rem/1 var(--mono);letter-spacing:.12em;color:var(--muted)}
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.ax{font:500 10.5px var(--mono);fill:var(--muted)}
+.grid line{stroke:var(--rule);stroke-width:1}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.kv div{border-left:2px solid var(--rule);padding-left:10px}
+.kv dt{font:500 .7rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.kv dd{margin:3px 0 0;font:600 1.25rem/1.1 var(--display)}
+.pill{font:600 .7rem/1 var(--mono);padding:4px 7px;border-radius:999px;border:1px solid currentColor;display:inline-block}
+.HIGH{color:var(--ok)}.MEDIUM{color:var(--teal)}.LOW{color:var(--warn)}.NONE{color:var(--mag)}
+select{font:500 .9rem var(--mono);padding:7px 10px;background:var(--sheet);color:var(--ink);border:1px solid var(--ink);border-radius:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+label.tg{display:flex;gap:6px;align-items:center;font:500 .8rem var(--mono)}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.86rem}
+th,td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
+th{font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+td.num{text-align:right}
+ul.notes{margin:0;padding-left:18px;display:grid;gap:6px;max-width:80ch}
+footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;font-size:.85rem}
+@media (max-width:900px){.plate{grid-template-columns:1fr}.mapbox{border-right:0;border-bottom:1px solid var(--ink)}.sids{max-height:360px}.panels{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">OEJN · King Abdulaziz Intl · RWY 34C / 34L departures · prototype day 1 Oct 2026</div>
+  <h1>OEJN Noise Atlas</h1>
+  <p>Who lives under Jeddah's published departure routes, and the validated aircraft-noise data that will turn those routes into noise exposure. Built from the A5 noise-data layer (EASA ANP 2.3, ECAC Doc 29 5th Ed.) and the A6 population layer (WorldPop 2026, 100 m).</p>
+  <div class="chips" id="chips"></div>
+</header>
+
+<section class="plate" aria-label="Population and departure routes map">
+  <div class="mapbox">
+    <canvas id="map" role="img" aria-label="Map of population density around OEJN with the 16 RNAV departure routes"></canvas>
+    <div class="legend">
+      <div>People per ~0.5 km cell</div>
+      <canvas class="ramp" id="ramp" width="150" height="8"></canvas>
+      <div class="row" style="justify-content:space-between;width:150px"><span id="rlo">1</span><span id="rhi">—</span></div>
+      <div class="row"><span style="color:var(--mag)">━ RWY 34C (2W)</span><span style="color:var(--teal)">━ RWY 34L (3X)</span></div>
+      <div class="muted">○ rings 10 / 20 / 40 km from ARP</div>
+    </div>
+    <div class="tip" id="tip" hidden></div>
+  </div>
+  <aside class="rail">
+    <div class="rail-head">
+      <h3>People within 3 km of each route</h3>
+      <div class="seg" role="group" aria-label="Runway filter">
+        <button id="f-all" aria-pressed="true">All</button><button id="f-c" aria-pressed="false">34C</button><button id="f-l" aria-pressed="false">34L</button>
+      </div>
+    </div>
+    <div class="sids" id="sids"></div>
+    <div class="detail" id="detail"></div>
+  </aside>
+</section>
+
+<section class="panels">
+  <article class="panel">
+    <div class="ph"><h2>Distance from the airport</h2><span class="tag">A6 · RINGS FROM ARP</span></div>
+    <div class="chart" id="rings"></div>
+    <p class="muted" id="ringnote"></p>
+  </article>
+
+  <article class="panel">
+    <div class="ph"><h2>How loud, how far</h2><span class="tag">A5 · NPD EXPLORER</span></div>
+    <div class="row">
+      <select id="ac" aria-label="Aircraft type"></select>
+      <div class="seg" role="group" aria-label="Noise metric"><button id="m-sel" aria-pressed="true">SEL</button><button id="m-lmax" aria-pressed="false">LAmax</button></div>
+      <label class="tg"><input type="checkbox" id="adj" checked> apply Δ</label>
+    </div>
+    <div id="accard"></div>
+    <div class="chart" id="npd"></div>
+    <p class="muted">Departure noise directly below a straight flight path, by corrected net thrust per engine (one line per tabulated power). Baseline NPD level before Doc 29 duration, directivity, lateral and atmospheric adjustments.</p>
+  </article>
+
+  <article class="panel">
+    <div class="ph"><h2>Engine and weight move the answer</h2><span class="tag">A5 · EASA CONFIGURATIONS</span></div>
+    <div class="seg" role="group" aria-label="Aircraft type for configuration chart"><button id="b-A20N" aria-pressed="true">A20N</button><button id="b-A21N" aria-pressed="false">A21N</button><button id="b-B789" aria-pressed="false">B789</button></div>
+    <div class="chart" id="brk"></div>
+    <p class="muted" id="brknote"></p>
+  </article>
+
+  <article class="panel">
+    <div class="ph"><h2>Checked against ECAC</h2><span class="tag">A5 · DOC 29 VOL 3 · B-2</span></div>
+    <div class="chart" id="v3"></div>
+    <dl class="kv" id="v3kv"></dl>
+  </article>
+
+  <article class="panel wide">
+    <div class="ph"><h2>Fleet → ANP mapping</h2><span class="tag">A5 · aircraft_noise_mapping</span></div>
+    <div class="tablebox"><table id="fleet"></table></div>
+  </article>
+
+  <article class="panel wide">
+    <div class="ph"><h2>Read before using these numbers</h2><span class="tag">SCOPE AND LIMITS</span></div>
+    <ul class="notes" id="notes"></ul>
+  </article>
+</section>
+
+<footer>
+  <div class="mono" id="prov"></div>
+  <div class="muted">Sources: EASA ANP database v2.3 · ECAC Doc 29 5th Edition (2026) · EASA ANP substitution tables · WorldPop Global2 R2025A v1 (CC BY 4.0) · Saudi AIP AD 2 OEJN (AIP AMDT 10/26).</div>
+</footer>
+</div>
+
+<script src="atlas_data.js"></script>
+<script>
+(() => {
+const D = window.ATLAS;
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmt = (x, d = 0) => x == null ? "—" : Number(x).toLocaleString("en-US", {maximumFractionDigits: d, minimumFractionDigits: d});
+const fmtK = x => x >= 1e6 ? (x / 1e6).toFixed(2) + " M" : x >= 1e3 ? (x / 1e3).toFixed(x >= 1e5 ? 0 : 1) + " k" : fmt(x);
+const NS = "http://www.w3.org/2000/svg";
+function svg(w, h) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); return s; }
+function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function txt(parent, x, y, s, attrs = {}) { const t = el("text", {x, y, class: "ax", ...attrs}, parent); t.textContent = s; return t; }
+
+/* ---------- header chips ---------- */
+const a5 = D.a5, P = D.population;
+const chips = [
+  [`A5 · ${a5.qc.ERROR} errors · ${a5.qc.PASS} checks passed`, a5.qc.ERROR === 0],
+  [`Doc 29 Vol 3 reproduced · max |Δ| ${a5.vol3.max_abs_diff.toExponential(1)} dB`, a5.vol3.max_abs_diff < 0.01],
+  [`A6 · population conserved exactly · ${fmt(P.summary.receptors)} cells`, P.summary.qc.ERROR === 0],
+  [`16 SIDs digitised · legs within ${D.sid_check.max_abs_diff_nm} NM of AIP`, D.sid_check.max_abs_diff_nm <= 0.1],
+  [`${a5.qc.UNRESOLVED} open item · ${a5.qc.WARNING} source warnings`, false],
+];
+$("chips").innerHTML = chips.map(([t, ok]) => `<span class="chip ${ok ? "" : "warn"}"><i></i>${t}</span>`).join("");
+
+/* ---------- map ---------- */
+const E = D.extent, lat0 = (E.south + E.north) / 2, kx = Math.cos(lat0 * Math.PI / 180);
+const cv = $("map"), ctx = cv.getContext("2d");
+let W = 0, H = 0, sc = 1, ox = 0, oy = 0, runway = "all", selected = null;
+const proj = (lon, lat) => [ox + (lon - E.west) * kx * sc, oy + (E.north - lat) * sc];
+const unproj = (x, y) => [E.west + (x - ox) / (kx * sc), E.north - (y - oy) / sc];
+const grid = P.grid, popVals = grid.map(g => g[2]).sort((a, b) => a - b);
+const pHi = popVals[Math.floor(popVals.length * 0.995)] || 1;
+$("rhi").textContent = fmt(pHi) + "+";
+function ramp(t) { // t in [0,1] -> colour along p0..p4
+  const stops = ["--p0", "--p1", "--p2", "--p3", "--p4"].map(css);
+  const i = Math.min(3, Math.floor(t * 4)), f = t * 4 - i;
+  const a = hex(stops[i]), b = hex(stops[i + 1]);
+  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
+}
+function hex(h) { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
+const tOf = p => Math.max(0, Math.min(1, Math.log10(1 + p) / Math.log10(1 + pHi)));
+function drawRamp() { const r = $("ramp").getContext("2d"); for (let x = 0; x < 150; x++) { r.fillStyle = ramp(x / 149); r.fillRect(x, 0, 1, 8); } }
+function size() {
+  const dpr = window.devicePixelRatio || 1, cssW = cv.clientWidth, cssH = cv.clientHeight;
+  cv.width = cssW * dpr; cv.height = cssH * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); W = cssW; H = cssH;
+  const sx = W / ((E.east - E.west) * kx), sy = H / (E.north - E.south); sc = Math.min(sx, sy);
+  ox = (W - (E.east - E.west) * kx * sc) / 2; oy = (H - (E.north - E.south) * sc) / 2;
+}
+function draw() {
+  ctx.fillStyle = css("--sheet"); ctx.fillRect(0, 0, W, H);
+  // graticule
+  ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1; ctx.font = "500 10px " + css("--mono"); ctx.fillStyle = css("--muted");
+  for (let lo = Math.ceil(E.west * 4) / 4; lo <= E.east; lo += 0.25) { const [x] = proj(lo, E.south); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); if (Math.abs(lo % 1) < 1e-9 || Math.abs(lo % 0.5) < 1e-9) ctx.fillText(lo.toFixed(1) + "°E", x + 3, H - 6); }
+  for (let la = Math.ceil(E.south * 4) / 4; la <= E.north; la += 0.25) { const [, y] = proj(E.west, la); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); if (Math.abs(la % 0.5) < 1e-9) ctx.fillText(la.toFixed(1) + "°N", 4, y - 3); }
+  // population
+  const b = P.bin_deg, cw = b * kx * sc + 0.6, ch = b * sc + 0.6;
+  for (const [lo, la, p] of grid) { const [x, y] = proj(lo - b / 2, la + b / 2); ctx.fillStyle = ramp(tOf(p)); ctx.fillRect(x, y, cw, ch); }
+  // rings
+  const [ax, ay] = proj(D.arp.lon, D.arp.lat);
+  ctx.setLineDash([3, 4]); ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1;
+  for (const km of [10, 20, 40]) { const ry = km / 111.32 * sc, rx = km / (111.32 * Math.cos(D.arp.lat * Math.PI / 180)) * kx * sc; ctx.beginPath(); ctx.ellipse(ax, ay, rx, ry, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillText(km + " km", ax + rx + 3, ay - 2); }
+  ctx.setLineDash([]);
+  // routes
+  const order = [...D.sids].sort((a, b) => (a.sid === selected) - (b.sid === selected));
+  for (const s of order) {
+    if (runway !== "all" && s.runway !== runway) continue;
+    const col = s.runway === "34C" ? css("--mag") : css("--teal");
+    const sel = s.sid === selected, dim = selected && !sel;
+    ctx.globalAlpha = dim ? 0.25 : 1; ctx.strokeStyle = col; ctx.lineWidth = sel ? 3.2 : 1.6;
+    // runway-to-first-fix connector (approximate: threshold coordinates not in project data)
+    const [fx, fy] = proj(...s.path[0]);
+    ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(fx, fy); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); s.path.forEach((p, i) => { const [x, y] = proj(...p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
+    if (sel) { // 3 km corridor halo
+      ctx.globalAlpha = 0.14; ctx.lineWidth = 2 * 3 / 111.32 * sc; ctx.lineCap = "round"; ctx.lineJoin = "round";
+      ctx.beginPath(); s.path.forEach((p, i) => { const [x, y] = proj(...p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.lineCap = "butt";
+    }
+    ctx.globalAlpha = 1;
+  }
+  // waypoints of visible routes (fly-by triangles), exits labelled
+  const seen = new Set();
+  ctx.font = "600 11px " + css("--display");
+  for (const s of D.sids) {
+    if (runway !== "all" && s.runway !== runway) continue;
+    if (selected && s.sid !== selected) continue;
+    s.fixes.forEach((f, i) => {
+      if (seen.has(f)) return; seen.add(f);
+      const [x, y] = proj(...D.waypoints[f]); const exit = i === s.fixes.length - 1;
+      ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3.6, y + 2.5); ctx.lineTo(x - 3.6, y + 2.5); ctx.closePath(); ctx.fill();
+      if (exit || selected) { ctx.fillText(f, x + 6, y + 4); }
+    });
+  }
+  // ARP
+  ctx.strokeStyle = css("--ink"); ctx.fillStyle = css("--sheet"); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ax, ay, 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ax - 10, ay); ctx.lineTo(ax + 10, ay); ctx.moveTo(ax, ay - 10); ctx.lineTo(ax, ay + 10); ctx.stroke();
+  ctx.fillStyle = css("--ink"); ctx.font = "700 14px " + css("--display"); ctx.fillText("OEJN", ax + 10, ay + 18);
+}
+// hover: population bin under cursor
+const binIndex = new Map(); const bdeg = P.bin_deg;
+for (const g of grid) binIndex.set(Math.round(g[0] / bdeg) + ":" + Math.round(g[1] / bdeg), g);
+cv.addEventListener("mousemove", e => {
+  const r = cv.getBoundingClientRect(), [lo, la] = unproj(e.clientX - r.left, e.clientY - r.top);
+  const g = binIndex.get(Math.round(lo / bdeg) + ":" + Math.round(la / bdeg));
+  const tip = $("tip");
+  if (!g) { tip.hidden = true; return; }
+  tip.hidden = false; tip.textContent = `${fmt(g[2])} people · ${la.toFixed(3)}°N ${lo.toFixed(3)}°E`;
+  tip.style.left = Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 6) + "px"; tip.style.top = (e.clientY - r.top + 12) + "px";
+});
+cv.addEventListener("mouseleave", () => $("tip").hidden = true);
+
+/* ---------- route rail ---------- */
+const maxPop = Math.max(...D.sids.map(s => s.pop_3km));
+function rail() {
+  const rows = D.sids.filter(s => runway === "all" || s.runway === runway).sort((a, b) => b.pop_3km - a.pop_3km);
+  $("sids").innerHTML = rows.map(s => `<button class="sidrow ${s.runway === "34L" ? "l" : ""}" data-sid="${s.sid}" aria-pressed="${s.sid === selected}">
+     <b>${s.sid}</b><span class="bar"><span style="width:${(100 * s.pop_3km / maxPop).toFixed(1)}%"></span></span><span class="num">${fmtK(s.pop_3km)}</span></button>`).join("");
+  $("sids").querySelectorAll(".sidrow").forEach(b => b.onclick = () => { selected = selected === b.dataset.sid ? null : b.dataset.sid; rail(); draw(); detail(); });
+}
+function detail() {
+  const s = D.sids.find(x => x.sid === (selected || [...D.sids].sort((a, b) => b.pop_3km - a.pop_3km)[0].sid));
+  const prof = s.profile_3km_per2km, w = 300, h = 90, m = Math.max(...prof, 1);
+  const g = svg(w, h + 18); const col = s.runway === "34C" ? "var(--mag)" : "var(--teal)";
+  const bw = w / prof.length;
+  prof.forEach((v, i) => el("rect", {x: i * bw, y: h - v / m * h, width: Math.max(bw - 0.6, 0.6), height: v / m * h, fill: col}, g));
+  el("line", {x1: 0, x2: w, y1: h, y2: h, stroke: "var(--rule)"}, g);
+  txt(g, 0, h + 14, "first fix"); txt(g, w, h + 14, `${s.track_km} km → ${s.exit}`, {"text-anchor": "end"});
+  $("detail").innerHTML = `<h3>${s.sid}${selected ? "" : " · most populated"}</h3>
+    <dl class="kv"><div><dt>within 1 km</dt><dd class="num">${fmtK(s.pop_1km)}</dd></div><div><dt>within 3 km</dt><dd class="num">${fmtK(s.pop_3km)}</dd></div><div><dt>3 km · first 30 km</dt><dd class="num">${fmtK(s.pop_3km_first30km)}</dd></div></dl>
+    <div class="muted" style="font-size:.78rem">People within 3 km, per 2 km of published track</div>`;
+  $("detail").appendChild(g);
+}
+function setRunway(r) { runway = r; selected = null; ["f-all", "f-c", "f-l"].forEach((id, i) => $(id).setAttribute("aria-pressed", ["all", "34C", "34L"][i] === r)); rail(); draw(); detail(); }
+$("f-all").onclick = () => setRunway("all"); $("f-c").onclick = () => setRunway("34C"); $("f-l").onclick = () => setRunway("34L");
+
+/* ---------- rings chart ---------- */
+function rings() {
+  const R = P.rings, w = 520, h = 230, l = 54, b = 26, maxP = Math.max(...R.map(r => r.population));
+  const g = svg(w, h); const gg = el("g", {class: "grid"}, g);
+  const xs = r => l + (w - l - 8) * r / R[R.length - 1].radius_km, ys = p => h - b - (h - b - 10) * p / maxP;
+  [0, .25, .5, .75, 1].forEach(f => { el("line", {x1: l, x2: w - 8, y1: ys(f * maxP), y2: ys(f * maxP)}, gg); txt(g, l - 6, ys(f * maxP) + 4, fmtK(f * maxP), {"text-anchor": "end"}); });
+  let d = `M${xs(0)},${ys(0)}`; R.forEach(r => d += ` L${xs(r.radius_km)},${ys(r.population)}`);
+  el("path", {d: d + ` L${xs(R[R.length - 1].radius_km)},${ys(0)} Z`, fill: "var(--p1)", opacity: .35}, g);
+  el("path", {d, fill: "none", stroke: "var(--p3)", "stroke-width": 2}, g);
+  R.forEach(r => { el("circle", {cx: xs(r.radius_km), cy: ys(r.population), r: 3.5, fill: "var(--p3)"}, g); txt(g, xs(r.radius_km), h - 8, r.radius_km, {"text-anchor": "middle"}); });
+  txt(g, w - 8, h - 8 - 14, "km from ARP", {"text-anchor": "end"});
+  $("rings").appendChild(g);
+  const r10 = R.find(r => r.radius_km === 10), r40 = R.find(r => r.radius_km === 40);
+  $("ringnote").textContent = `${fmtK(r10.population)} people live within 10 km of the aerodrome reference point and ${fmtK(r40.population)} within 40 km. Study area 20–23°N, 38–41°E: ${fmtK(P.summary.study_population)} people in ${fmt(P.summary.receptors)} populated 100 m cells.`;
+}
+
+/* ---------- NPD explorer ---------- */
+let metric = "SEL";
+const fleet = a5.fleet;
+$("ac").innerHTML = fleet.map(f => `<option value="${f.icao}">${f.icao}${f.anp ? " → " + f.anp : ""}</option>`).join("");
+function npd() {
+  const f = fleet.find(x => x.icao === $("ac").value), box = $("npd"); box.innerHTML = "";
+  $("accard").innerHTML = `<div class="row"><span class="pill ${f.confidence}">${f.confidence}</span><span class="mono" style="font-size:.82rem">${f.method}</span>
+     <span class="mono" style="font-size:.82rem">Δ ${f.delta == null ? "pending" : (f.delta > 0 ? "+" : "") + f.delta + " dB"}</span>${f.verified ? '<span class="mono muted" style="font-size:.82rem">EASA verified data exists</span>' : ""}</div>
+     <div class="muted" style="font-size:.85rem">${f.desc || ""}</div>`;
+  const c = a5.curves[f.npd]?.[metric]; if (!c) { box.innerHTML = '<p class="muted">No NPD curve: mapping pending.</p>'; return; }
+  const add = $("adj").checked && f.delta != null ? f.delta : 0;
+  const ds = a5.distances_ft, w = 520, h = 260, l = 42, b = 30, t = 10, r = 10;
+  const all = c.flatMap(k => k.L.map(v => v + add)), lo = Math.floor(Math.min(...all) / 10) * 10, hi = Math.ceil(Math.max(...all) / 10) * 10;
+  const xs = d => l + (w - l - r) * (Math.log10(d) - Math.log10(200)) / (Math.log10(25000) - Math.log10(200));
+  const ys = v => t + (h - t - b) * (hi - v) / (hi - lo);
+  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
+  for (let v = lo; v <= hi; v += 10) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); }
+  [200, 1000, 4000, 10000, 25000].forEach(d => { el("line", {x1: xs(d), x2: xs(d), y1: t, y2: h - b}, gg); txt(g, xs(d), h - b + 15, d >= 1000 ? d / 1000 + "k ft" : d + " ft", {"text-anchor": "middle"}); });
+  const pMax = Math.max(...c.map(k => k.p)), pMin = Math.min(...c.map(k => k.p));
+  c.sort((a, b) => a.p - b.p).forEach((k, i) => {
+    const op = 0.35 + 0.65 * (pMax === pMin ? 1 : (k.p - pMin) / (pMax - pMin));
+    el("path", {d: k.L.map((v, j) => `${j ? "L" : "M"}${xs(ds[j]).toFixed(1)},${ys(v + add).toFixed(1)}`).join(""), fill: "none", stroke: "var(--mag)", "stroke-width": 1.8, opacity: op}, g);
+    const last = k.L[k.L.length - 1] + add; if (i === c.length - 1 || i === 0) txt(g, w - r, ys(last) - 4, fmt(k.p) + " lb", {"text-anchor": "end"});
+  });
+  txt(g, l, t + 2, metric + " (dB)", {dy: 8});
+  box.appendChild(g);
+}
+$("ac").onchange = npd; $("adj").onchange = npd;
+$("m-sel").onclick = () => { metric = "SEL"; $("m-sel").setAttribute("aria-pressed", true); $("m-lmax").setAttribute("aria-pressed", false); npd(); };
+$("m-lmax").onclick = () => { metric = "LAmax"; $("m-lmax").setAttribute("aria-pressed", true); $("m-sel").setAttribute("aria-pressed", false); npd(); };
+
+/* ---------- configuration brackets ---------- */
+function brk(code) {
+  ["A20N", "A21N", "B789"].forEach(c => $("b-" + c).setAttribute("aria-pressed", c === code));
+  const pts = a5.brackets[code], box = $("brk"); box.innerHTML = "";
+  const w = 520, h = 250, l = 40, b = 30, t = 30, r = 10;
+  const mx = pts.map(p => p.mtow_t), dy = pts.map(p => p.delta);
+  const x0 = Math.floor(Math.min(...mx) - 1), x1 = Math.ceil(Math.max(...mx) + 1), y0 = Math.floor(Math.min(...dy) - 0.5), y1 = Math.ceil(Math.max(...dy) + 0.5);
+  const xs = v => l + (w - l - r) * (v - x0) / (x1 - x0), ys = v => t + (h - t - b) * (y1 - v) / (y1 - y0);
+  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
+  for (let v = y0; v <= y1; v++) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); }
+  const xstep = (x1 - x0) > 40 ? 20 : 5;
+  for (let v = Math.ceil(x0 / xstep) * xstep; v <= x1; v += xstep) txt(g, xs(v), h - b + 15, v + " t", {"text-anchor": "middle"});
+  if (y0 <= 0 && 0 <= y1) {
+    el("line", {x1: l, x2: w - r, y1: ys(0), y2: ys(0), stroke: "var(--ink)", "stroke-dasharray": "3 3"}, g);
+    txt(g, w - r, ys(0) - 4, "proxy level (Δ = 0)", {"text-anchor": "end"});
+  }
+  txt(g, l - 34, 12, "Δ dB");
+  const fams = [...new Set(pts.map(p => p.family))], cols = ["var(--mag)", "var(--teal)", "var(--warn)", "var(--muted)"];
+  const seen = new Set();
+  pts.forEach(p => { const k = p.mtow_t + ":" + p.delta + ":" + p.family; if (seen.has(k)) return; seen.add(k); el("circle", {cx: xs(p.mtow_t), cy: ys(p.delta), r: 3.4, fill: cols[fams.indexOf(p.family)], opacity: .8}, g); });
+  fams.forEach((f, i) => { el("circle", {cx: l + 40 + i * 90, cy: 8, r: 4, fill: cols[i]}, g); txt(g, l + 48 + i * 90, 12, f); });
+  box.appendChild(g);
+  const fl = a5.fleet.find(x => x.icao === code);
+  $("brknote").textContent = `Each dot is one EASA-certified configuration of the ${code} (certified MTOW × engine). Δ is the decibel adjustment applied to the ANP proxy (${fl?.anp}). Without engine and MTOW from A3, A5 uses the Doc 29 conservative choice: Δ = ${fl?.delta} dB.`;
+}
+["A20N", "A21N", "B789"].forEach(c => $("b-" + c).onclick = () => brk(c));
+
+/* ---------- Vol 3 validation ---------- */
+function v3() {
+  const pts = a5.vol3.points, w = 420, h = 300, l = 40, b = 30, t = 8, r = 8;
+  const all = pts.flat(), lo = Math.floor(Math.min(...all) / 10) * 10, hi = Math.ceil(Math.max(...all) / 10) * 10;
+  const s = v => (v - lo) / (hi - lo), xs = v => l + (w - l - r) * s(v), ys = v => h - b - (h - b - t) * s(v);
+  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
+  for (let v = lo; v <= hi; v += 20) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); txt(g, xs(v), h - b + 15, v, {"text-anchor": "middle"}); }
+  el("line", {x1: xs(lo), y1: ys(lo), x2: xs(hi), y2: ys(hi), stroke: "var(--ink)", "stroke-dasharray": "4 3"}, g);
+  pts.forEach(([a, c]) => el("circle", {cx: xs(a), cy: ys(c), r: 2.2, fill: "var(--teal)", opacity: .6}, g));
+  txt(g, w - r, h - 4, "ECAC reference baseline SEL (dB)", {"text-anchor": "end"}); txt(g, l + 4, t + 10, "A5 NPD lookup (dB)");
+  $("v3").appendChild(g);
+  $("v3kv").innerHTML = `<div><dt>segments</dt><dd class="num">${fmt(a5.vol3.n)}</dd></div><div><dt>max |difference|</dt><dd class="num">${a5.vol3.max_abs_diff.toExponential(1)} dB</dd></div><div><dt>tolerance</dt><dd class="num">0.01 dB</dd></div>`;
+}
+
+/* ---------- fleet table ---------- */
+function fleetTable() {
+  $("fleet").innerHTML = `<thead><tr><th>ICAO</th><th>ANP aircraft</th><th>Method</th><th>Δ dep (dB)</th><th>Confidence</th><th>Verified data at EASA</th></tr></thead><tbody>` +
+    fleet.map(f => `<tr><td class="mono">${f.icao}</td><td class="mono">${f.anp || "—"}</td><td class="mono">${f.method}</td><td class="num">${f.delta == null ? "pending" : f.delta.toFixed(1)}</td><td><span class="pill ${f.confidence}">${f.confidence}</span></td><td>${f.verified ? "yes" : ""}</td></tr>`).join("") + "</tbody>";
+}
+
+/* ---------- notes + provenance ---------- */
+$("notes").innerHTML = [
+  "Route figures count people near the published SID ground tracks (fix-to-fix legs), not flown trajectories, and say nothing yet about noise levels. Flown tracks (A2) and the Doc 29 noise model replace them in the next stage.",
+  "Context from the A2 coverage assessment (1 Oct 2026, pilot take-off filter): 208 candidate departures from RWY 34C and 23 from RWY 34L. On the published tracks, the early 34L legs pass over far more residents than the 34C legs, so how traffic splits between the runways matters for exposure.",
+  "The dotted segment from the airport to each route's first fix is a placeholder: runway-threshold coordinates are not in the project data, so it is excluded from every count.",
+  "WorldPop 2026 is a modelled residential estimate (alpha release R2025A), not a census; it shows where people sleep, not where they work or travel.",
+  "NPD curves are baseline levels. Duration, engine-installation, lateral-attenuation, impedance and atmospheric adjustments belong to the noise model; on 1 October 2026 air temperature at OEJN was ≥ 30 °C for 17 of 24 hours, outside the Doc 29 NPD applicability envelope, so the atmospheric adjustment will be required.",
+  "A339, B78X and B39M are mapped to proxies but stay unusable until their certified levels are entered (Eq. 6-1). No silent Δ = 0.",
+  ...D.aip_notes.map(n => "AIP check: " + n),
+].map(n => `<li>${n}</li>`).join("");
+$("prov").textContent = `Data releases: ${D.generated_from.a5} · ${D.generated_from.a6} (${P.summary.source_mode === "study_area_extract" ? "study-area extract of the locked WorldPop file" : "national WorldPop file"})`;
+
+/* ---------- boot + theme ---------- */
+function all() { size(); drawRamp(); draw(); }
+rail(); detail(); rings(); npd(); brk("A20N"); v3(); fleetTable(); all();
+new ResizeObserver(() => all()).observe(cv);
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", all);
+new MutationObserver(all).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
+})();
+</script>

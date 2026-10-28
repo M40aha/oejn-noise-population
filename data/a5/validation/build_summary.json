@@ -1,0 +1,25 @@
+{
+  "release_id": "a5-anp2.3-doc29e5-v1",
+  "built_utc": "2026-10-28T19:13:58+00:00",
+  "python": "3.13.16",
+  "platform": "Linux-6.18.44-fc-v180-x86_64-with-glibc2.39",
+  "packages": {
+    "pandas": "3.0.5",
+    "numpy": "2.5.3",
+    "duckdb": "2.0.0"
+  },
+  "qc_counts": {
+    "PASS": 106,
+    "INFO": 22,
+    "WARNING": 5,
+    "ERROR": 0,
+    "UNRESOLVED": 1
+  },
+  "vol3_b2_max_abs_diff_db": 1.2789769243681803e-13,
+  "vol3_b2_segments": 3516,
+  "mapping_methods": {
+    "EASA_ICAO": 168,
+    "EASA_ICAO_AMBIGUOUS": 21,
+    "ANALYST_PROXY": 3
+  }
+}

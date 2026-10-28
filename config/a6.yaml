@@ -1,0 +1,57 @@
+# A6 — Population exposure layer: build configuration
+
+release_id: "a6-worldpop-r2025a-2026-v1"
+
+# Raw source folder (never modified). Relative to the repository root.
+# Override with env var A6_RAW_DIR.
+raw_dir: "../OEJN-Noise-Fuel-Capacity/A6"
+
+source:
+  file: sau_pop_2026_CN_100m_R2025A_v1.tif
+  publisher: WorldPop (University of Southampton)
+  title: "Global2 R2025A v1 — Saudi Arabia 2026 constrained population, 100 m (people per cell)"
+  version: "R2025A v1 (alpha public release, September 2025)"
+  licence: "CC BY 4.0"
+  url: "https://data.worldpop.org/GIS/Population/Global_2015_2030/R2025A/2026/SAU/v1/100m/constrained/sau_pop_2026_CN_100m_R2025A_v1.tif"
+  sha256: 3ed9bc9ad51cd99d75461816e6c01ad71d466303adaab0809d1a989aabe57410
+  release_statement: Global2_Release_Statement_R2025A_v1.pdf
+
+# Alternative input when the national file cannot be moved (upload limits): a bit-identical study-area
+# extract + manifest produced by scripts/a6_extract_study_area.py from the locked national file.
+extract:
+  file: a6_study_area_extract.tif
+  manifest: a6_study_area_extract.json
+
+# Expected raster properties (documented in A6/README.md). Any difference is an ERROR.
+expected_raster:
+  crs_epsg: 4326
+  pixel_size_deg: 0.00083333333   # 3 arc-seconds as stored in the file (A6/README.md)
+  width: 25407
+  height: 18930
+  nodata: -99999.0
+  dtype: float32
+  band_count: 1
+
+# Study area = the A2 ADS-B filter box and the A4 ERA5 grid (20-23 N, 38-41 E), so every
+# trajectory point, weather value and receptor share one domain. Snapped outward to whole pixels.
+study_area:
+  south: 20.0
+  north: 23.0
+  west: 38.0
+  east: 41.0
+
+# OEJN aerodrome reference point (as used in the A2 coverage assessment).
+oejn_arp:
+  lat: 21.681111
+  lon: 39.156111
+
+# Projected CRS for metre-based noise geometry: UTM zone 37N (36-42 E covers the study area).
+projected_crs_epsg: 32637
+
+distance_rings_km: [5, 10, 15, 20, 30, 40, 60, 80, 100]
+
+# Aggregation grids for maps (whole multiples of the 3-arc-second pixel => no cell is split).
+aggregation_pixels: [6, 12, 24]      # 0.005 deg (~0.5 km), 0.01 deg (~1 km), 0.02 deg (~2 km)
+
+# Sum the whole national raster (streamed in blocks) as context. ~1 min.
+compute_national_total: true
