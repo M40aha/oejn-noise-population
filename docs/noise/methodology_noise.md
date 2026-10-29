@@ -39,14 +39,14 @@ This is what is done; no procedure profile is imposed on the observed tracks.
 - **Reference plane:** the departure-runway threshold elevation. Receptors lie on that plane. This is Doc 29's flat-terrain
   default, with the optional topography adjustment not applied. Jeddah's coastal plain is flat near the airport; the ground rises
   towards the eastern escarpment (>25 km).
-- **Lift-off:** a straight-line fit of height against distance from the start of roll (SOR), through the climb points in
-  the fit window below, is extrapolated back to z = 0. The result is clamped to [1,500 ft, TORA] (flagged). The lift-off
-  speed comes from the same points (V² linear in distance), with a plausibility window of 100–220 kt.
+- **Lift-off:** a straight-line fit of height against distance from the start of roll (SOR) is extrapolated back to z = 0.
+  The fit uses the heights between 100 and 1,000 ft within 120 s of the first point above 100 ft; ADS-B heights near the runway
+  are 25-ft quantised and the roll itself is often not reported, so points below 100 ft are not used. The result is clamped to
+  [1,500 ft, TORA] (flagged). The lift-off speed comes from the same points (V² linear in distance), with a plausibility window
+  of 100–220 kt. On 1 Oct the median lift-off is ≈ 2,380 m from SOR at ≈ 172 kt.
 - **Rejected paths:** a departure whose first airborne observation lies more than 5 km from the lift-off point or above 3,000 ft
   (the take-off was not observed near the runway) is not modelled (`PATH_FAILED`, reason recorded); so is a track with fewer
   than 3 airborne points.
-- **Lift-off (fit window):** heights between 100 and 1,000 ft within 120 s of the first point above 100 ft. ADS-B heights near the
-  runway are 25-ft quantised and the roll itself is often not reported, so points below 100 ft are not used.
 - **Ground roll:** from the runway threshold (SOR = threshold, i.e. full-length take-off; intersection departures are not
   identified) to lift-off. It is split into n = int(1 + V_TO/10) segments (V_TO in m/s) of length s_TO(2k−1)/n², with speed
   steps V_TO/n and constant thrust steps (Eq. 3-3e). The source is 1 m above the runway.
@@ -149,7 +149,25 @@ The run-time QC (`data/noise/validation/noise_qc.csv`) also reports:
 8. **Data permissions:** Wingbits data are evaluation-only. Per-flight geometry stays in `data/noise/interim/` (git-ignored);
    only aggregated grids and per-flight summary values are published.
 
-## 8. Run
+## 8. Presentation: the 3D map (`map3d/`, `scripts/build_map3d.py`, `src/viz/`)
+
+The map only displays results of the run above; it recomputes nothing except the illustrative Live view.
+- **Noise surface:** the 250 m grid (Lden, Lnight, N70), shown with a continuous green → red → dark-red ramp and contour
+  lines (contourpy) at Lden 45–75 dB, Lnight 40–65 dB, N70 1–100 events. The resident counts in the legend are read
+  from `population_exposure.csv`, not from the picture.
+- **Typical flight paths** (aggregates; no individual track is exported): each modelled departure is grouped by runway and
+  by the 20° sector where its path first leaves a 40 km circle around the ARP (paths that never pass 15 km are skipped).
+  Every path is resampled every 1 km along track (first 80 km). For each group with ≥ 3 departures the drawn line is
+  the point-wise median position and median height, continued only while ≥ 60 % of the group still has data. On 1 Oct:
+  7 groups, 196 departures.
+- **Population shading:** A6 600 m grid, as residents per km² (display only; exposure counts use the 100 m receptors).
+- **Live ▶ (illustrative, not a result):** during Map 2 playback, LAmax under the moving aircraft from the NPD of a typical
+  A320 (ANP A320-211, CFM565) at full take-off / climb thrust (B-9) with Doc 29 lateral attenuation, along Map 2's
+  concept trajectory (published procedure, demo heights).
+- **Source:** Map 2 is copied unchanged from the team repository (sha256 in `map3d/SOURCE.json`); two files get a small,
+  asserted patch. Local use only (Wingbits evaluation data).
+
+## 9. Run
 
 ```bash
 # inputs (git-ignored): data/inputs/a2/{a2_noise_departures.parquet,a2_noise_flights.csv,a2_noise_manifest.json},

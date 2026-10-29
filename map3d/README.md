@@ -14,6 +14,7 @@ scene:
   Map 2's concept playback (published procedure, demo heights) and uses a typical A320 (ANP A320-211, NPD CFM565 LAmax) at
   full take-off / climb thrust with Doc 29 lateral attenuation. It is a teaching view; the study results are the
   Day–night / Night / Loud-events layers computed from the observed flights.
+- **– / +** in the panel header minimises / restores the panel (remembered in the browser).
 - **Results ↗:** headline numbers, people per noise band, runway and aircraft comparisons, WHO indicators, method,
   validation and limits.
 
