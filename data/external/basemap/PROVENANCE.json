@@ -1,0 +1,50 @@
+{
+ "publisher": "Natural Earth (public domain), via nvkelso/natural-earth-vector",
+ "retrieved": "2026-10-30",
+ "layers": {
+  "ne_10m_land": {
+   "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_land.geojson",
+   "sha256_full_file": "1ac90796408bc6ad6911d69448485d3c4dbf2190370080368a09976e1c9f7416",
+   "clip_bbox_lonlat": [
+    38.5,
+    21.0,
+    39.9,
+    22.6
+   ],
+   "features": 1
+  },
+  "ne_10m_roads": {
+   "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_roads.geojson",
+   "sha256_full_file": "66a0c7b438e92fd124822cc5921cfa11042f48c294ade5e0f03f2c6640fd0248",
+   "clip_bbox_lonlat": [
+    38.5,
+    21.0,
+    39.9,
+    22.6
+   ],
+   "features": 34
+  },
+  "ne_10m_populated_places_simple": {
+   "source": "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_10m_populated_places_simple.geojson",
+   "sha256_full_file": "fd3fa867a320cbd5c5b6bb5bc550afeec2939fb2cef688e508007282a55ac42f",
+   "clip_bbox_lonlat": [
+    38.5,
+    21.0,
+    39.9,
+    22.6
+   ],
+   "features": 2
+  }
+ },
+ "osm_layers": {
+  "source": "A1 repository map-1/OEJN-ground.gpkg (OpenStreetMap contributors, ODbL), read only",
+  "gpkg_sha256": "1d85772c1470ab42cabc8dd1a170bc609357f34058804207d684256dc0615e92",
+  "layers": {
+   "roads": 1268,
+   "places": 17,
+   "coastline": 16,
+   "airport_boundary": 2
+  },
+  "roads_filter": "motorway/trunk/primary/secondary (+links), simplified 15 m"
+ }
+}

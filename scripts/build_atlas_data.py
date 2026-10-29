@@ -21,6 +21,7 @@ from pyproj import Transformer
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 from viz.sids import AIP_NOTES, SIDS, WAYPOINTS, leg_check  # noqa: E402
+from viz.noise_map import map_block  # noqa: E402
 
 A5 = ROOT / "data" / "a5"
 A6 = ROOT / "data" / "a6"
@@ -208,7 +209,8 @@ def main():
     data = {
         "generated_from": {"a5": json.loads((A5 / "validation" / "build_summary.json").read_text())["release_id"],
                            "a6": json.loads((A6 / "validation" / "build_summary.json").read_text())["release_id"]},
-        "arp": {"lat": 21.681111, "lon": 39.156111}, "population": pop, "noise": noise,
+        "arp": {"lat": 21.681111, "lon": 39.156111}, "noise": {k: v for k, v in noise.items() if k != "cells"} if noise else None,
+        "map": map_block(ROOT) if noise else None,
     }
     js = "window.ATLAS = " + json.dumps(data, separators=(",", ":")) + ";\n"
     (OUT / "atlas_data.js").write_text(js)
@@ -218,8 +220,7 @@ def main():
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>\n'
         + page + "\n</body></html>\n")
-    print(f"atlas_data.js: {len(js) / 1e6:.2f} MB, {len(pop['grid'])} population bins, "
-          f"{len(data['noise']['cells']) if data['noise'] else 0} noise cells")
+    print(f"atlas_data.js: {len(js) / 1e6:.2f} MB")
 
 
 if __name__ == "__main__":
