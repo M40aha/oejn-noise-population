@@ -10,6 +10,7 @@
   --bg:#EDF1F2; --sheet:#F8FAFA; --ink:#14232B; --muted:#5A6A72; --rule:#C7D1D5;
   --mag:#B4236E; --teal:#0B7782; --warn:#A35B00; --ok:#2F7D4A;
   --p0:#F2E4BF; --p1:#E7B95A; --p2:#C9741F; --p3:#7E3410; --p4:#3B1606;
+  --n0:#E9DDF5; --n1:#C7A3E6; --n2:#9B5CCB; --n3:#6A2A9E; --n4:#3A0E5E; --trk:#0B7782;
   --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -17,11 +18,13 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
   --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
-  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6; color-scheme:dark}}
+  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6;
+  --n0:#2E1A45; --n1:#5B2F8C; --n2:#9254C9; --n3:#C99BF0; --n4:#F1E2FF; --trk:#3CC6D1; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
   --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
-  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6; color-scheme:dark}
+  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6;
+  --n0:#2E1A45; --n1:#5B2F8C; --n2:#9254C9; --n3:#C99BF0; --n4:#F1E2FF; --trk:#3CC6D1; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
@@ -44,6 +47,16 @@ header{display:grid;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:1
 canvas#map{display:block;width:100%;height:auto;aspect-ratio:1/1.08;cursor:crosshair}
 .legend{position:absolute;left:12px;bottom:12px;background:var(--sheet);border:1px solid var(--rule);padding:8px 10px;font:500 .72rem/1.3 var(--mono);display:grid;gap:6px}
 .ramp{height:8px;width:150px;border:1px solid var(--rule)}
+.layers{position:absolute;left:12px;top:12px;background:var(--sheet)}
+.layers button{padding:7px 10px}
+.swatches{display:flex;width:180px;height:9px;border:1px solid var(--rule)}
+.swatches span{flex:1}
+.ticks{display:flex;justify-content:space-between;width:180px}
+.bignum{font:700 clamp(2rem,4vw,2.8rem)/1 var(--display)}
+.lede{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.lede div{border-top:3px solid var(--n2);padding-top:8px;display:grid;gap:4px}
+.lede span{font-size:.85rem;color:var(--muted)}
+.lede span.bignum{font:700 clamp(2rem,4vw,2.8rem)/1 var(--display);color:var(--ink)}
 .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--sheet);font:500 .74rem/1.35 var(--mono);padding:6px 8px;border-radius:2px;white-space:nowrap}
 .rail{display:flex;flex-direction:column;min-width:0}
 .rail-head{padding:14px 16px;border-bottom:1px solid var(--rule);display:grid;gap:10px}
@@ -85,6 +98,7 @@ th{font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;co
 td.num{text-align:right}
 ul.notes{margin:0;padding-left:18px;display:grid;gap:6px;max-width:80ch}
 footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;font-size:.85rem}
+@media (max-width:600px){.legend{font-size:.64rem;padding:6px 8px;gap:4px}.swatches,.ticks{width:150px}.layers button{padding:6px 7px}}
 @media (max-width:900px){.plate{grid-template-columns:1fr}.mapbox{border-right:0;border-bottom:1px solid var(--ink)}.sids{max-height:360px}.panels{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -93,20 +107,17 @@ footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;fon
 <header>
   <div class="eyebrow">OEJN · King Abdulaziz Intl · RWY 34C / 34L departures · prototype day 1 Oct 2026</div>
   <h1>OEJN Noise Atlas</h1>
-  <p>Who lives under Jeddah's published departure routes, and the validated aircraft-noise data that will turn those routes into noise exposure. Built from the A5 noise-data layer (EASA ANP 2.3, ECAC Doc 29 5th Ed.) and the A6 population layer (WorldPop 2026, 100 m).</p>
+  <p>Who lives under Jeddah's departure routes, and how much departure noise reached them on 1 October 2026. The noise layers come from an ECAC Doc 29 (5th Ed.) model run on the departures actually flown that day (A2 trajectories), with the A5 aircraft-noise data (EASA ANP 2.3) and the A6 population layer (WorldPop 2026, 100 m).</p>
   <div class="chips" id="chips"></div>
 </header>
 
 <section class="plate" aria-label="Population and departure routes map">
   <div class="mapbox">
-    <canvas id="map" role="img" aria-label="Map of population density around OEJN with the 16 RNAV departure routes"></canvas>
-    <div class="legend">
-      <div>People per ~0.5 km cell</div>
-      <canvas class="ramp" id="ramp" width="150" height="8"></canvas>
-      <div class="row" style="justify-content:space-between;width:150px"><span id="rlo">1</span><span id="rhi">—</span></div>
-      <div class="row"><span style="color:var(--mag)">━ RWY 34C (2W)</span><span style="color:var(--teal)">━ RWY 34L (3X)</span></div>
-      <div class="muted">○ rings 10 / 20 / 40 km from ARP</div>
+    <canvas id="map" role="img" aria-label="Map of population density around OEJN with departure routes and departure-noise layers of 1 October 2026"></canvas>
+    <div class="seg layers" role="group" aria-label="Map layer">
+      <button data-layer="routes" aria-pressed="true">Routes</button><button data-layer="lden" aria-pressed="false">Lden</button><button data-layer="lnight" aria-pressed="false">Lnight</button><button data-layer="n70" aria-pressed="false">N70</button><button data-layer="dens" aria-pressed="false">Flown</button>
     </div>
+    <div class="legend" id="legend"></div>
     <div class="tip" id="tip" hidden></div>
   </div>
   <aside class="rail">
@@ -119,6 +130,38 @@ footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;fon
     <div class="sids" id="sids"></div>
     <div class="detail" id="detail"></div>
   </aside>
+</section>
+
+<section class="panels" id="noisepanels">
+  <article class="panel wide">
+    <div class="ph"><h2>Departure noise on 1 October 2026</h2><span class="tag">NOISE MODEL · DOC 29 · OBSERVED DEPARTURES</span></div>
+    <div class="lede" id="lede"></div>
+    <div class="row">
+      <div class="seg" role="group" aria-label="Exposure indicator"><button id="x-lden" aria-pressed="true">Lden</button><button id="x-lnight" aria-pressed="false">Lnight</button><button id="x-n70" aria-pressed="false">N70</button></div>
+      <span class="muted" id="xnote" style="font-size:.85rem"></span>
+    </div>
+    <div class="chart" id="expo"></div>
+    <p class="muted" id="covnote"></p>
+  </article>
+
+  <article class="panel">
+    <div class="ph"><h2>Same aircraft, two runways</h2><span class="tag">RESIDENTS PER DEPARTURE · MEDIAN</span></div>
+    <div class="seg" role="group" aria-label="Threshold"><button id="s-65" aria-pressed="true">LAmax ≥ 65</button><button id="s-70" aria-pressed="false">LAmax ≥ 70</button></div>
+    <div class="chart" id="same"></div>
+    <p class="muted" id="samenote"></p>
+  </article>
+
+  <article class="panel">
+    <div class="ph"><h2>Which aircraft</h2><span class="tag">MEAN RESIDENTS · LAmax ≥ 70 dB · PER DEPARTURE</span></div>
+    <div class="chart" id="types"></div>
+    <p class="muted">Bar length: residents reached by LAmax ≥ 70 dB on an average departure of that type; label: departures that day. Hatched = ANP proxy with Δ = 0 (certified levels pending). With engines unknown, Δ follows the Doc 29 conservative variant, so the neo-versus-ceo gap should be confirmed once engines are resolved.</p>
+  </article>
+
+  <article class="panel wide">
+    <div class="ph"><h2>How the noise numbers were checked</h2><span class="tag">VALIDATION + RUN QC</span></div>
+    <dl class="kv" id="nval"></dl>
+    <div class="tablebox"><table id="nqc"></table></div>
+  </article>
 </section>
 
 <section class="panels">
@@ -166,7 +209,7 @@ footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;fon
 
 <footer>
   <div class="mono" id="prov"></div>
-  <div class="muted">Sources: EASA ANP database v2.3 · ECAC Doc 29 5th Edition (2026) · EASA ANP substitution tables · WorldPop Global2 R2025A v1 (CC BY 4.0) · Saudi AIP AD 2 OEJN (AIP AMDT 10/26).</div>
+  <div class="muted">Sources: EASA ANP database v2.3 · ECAC Doc 29 5th Edition (2026) · EASA ANP substitution tables · WorldPop Global2 R2025A v1 (CC BY 4.0) · Saudi AIP AD 2 OEJN (AIP AMDT 10/26) · Wingbits ADS-B sample, 1 Oct 2026 (evaluation use, via A2) · OEJN METAR (Iowa Environmental Mesonet) · OpenSky aircraft database.</div>
 </footer>
 </div>
 
@@ -184,8 +227,9 @@ function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, ta
 function txt(parent, x, y, s, attrs = {}) { const t = el("text", {x, y, class: "ax", ...attrs}, parent); t.textContent = s; return t; }
 
 /* ---------- header chips ---------- */
-const a5 = D.a5, P = D.population;
+const a5 = D.a5, P = D.population, N = D.noise;
 const chips = [
+  ...(N ? [[`Noise model · ${N.coverage.modelled} of ${N.coverage.in_scope} departures · Vol 3 ≤ ${N.validation.b2_max_db.toExponential(1)} dB`, true]] : []),
   [`A5 · ${a5.qc.ERROR} errors · ${a5.qc.PASS} checks passed`, a5.qc.ERROR === 0],
   [`Doc 29 Vol 3 reproduced · max |Δ| ${a5.vol3.max_abs_diff.toExponential(1)} dB`, a5.vol3.max_abs_diff < 0.01],
   [`A6 · population conserved exactly · ${fmt(P.summary.receptors)} cells`, P.summary.qc.ERROR === 0],
@@ -195,14 +239,23 @@ const chips = [
 $("chips").innerHTML = chips.map(([t, ok]) => `<span class="chip ${ok ? "" : "warn"}"><i></i>${t}</span>`).join("");
 
 /* ---------- map ---------- */
-const E = D.extent, lat0 = (E.south + E.north) / 2, kx = Math.cos(lat0 * Math.PI / 180);
+let E = D.extent; const lat0 = (E.south + E.north) / 2, kx = Math.cos(lat0 * Math.PI / 180);
+const NZ = {south: 21.36, north: 22.06, west: 38.80, east: 39.50};   // noise layers: zoom on the departure footprint
 const cv = $("map"), ctx = cv.getContext("2d");
-let W = 0, H = 0, sc = 1, ox = 0, oy = 0, runway = "all", selected = null;
+let W = 0, H = 0, sc = 1, ox = 0, oy = 0, runway = "all", selected = null, layer = "routes";
+const LAYERS = {
+  lden: {i: 2, steps: [45, 50, 55, 60, 65, 70], unit: "Lden dB", title: "Lden, departures of 1 Oct 2026"},
+  lnight: {i: 3, steps: [40, 45, 50, 55, 60, 65], unit: "Lnight dB", title: "Lnight (23–07 local)"},
+  n70: {i: 4, steps: [1, 5, 10, 20, 50, 100], unit: "events", title: "N70: departures with LAmax ≥ 70 dB"},
+  dens: {i: 5, steps: [1, 5, 10, 25, 50, 100], unit: "departures", title: "Flown departures per 0.5 km cell"},
+};
+const nCols = () => ["--n0", "--n1", "--n2", "--n3", "--n4"].map(css);
+function stepColor(v, steps) { const cols = layer === "dens" ? trkCols() : nCols(); let k = -1; steps.forEach((t, j) => { if (v >= t) k = j; }); return k < 0 ? null : cols[Math.min(cols.length - 1, Math.round(k * (cols.length - 1) / (steps.length - 1)))]; }
+function trkCols() { const t = hex(css("--trk")), b = hex(css("--sheet")); return [0.22, 0.4, 0.58, 0.78, 1].map(a => `rgb(${t.map((v, k) => Math.round(b[k] + (v - b[k]) * a)).join(",")})`); }
 const proj = (lon, lat) => [ox + (lon - E.west) * kx * sc, oy + (E.north - lat) * sc];
 const unproj = (x, y) => [E.west + (x - ox) / (kx * sc), E.north - (y - oy) / sc];
 const grid = P.grid, popVals = grid.map(g => g[2]).sort((a, b) => a - b);
 const pHi = popVals[Math.floor(popVals.length * 0.995)] || 1;
-$("rhi").textContent = fmt(pHi) + "+";
 function ramp(t) { // t in [0,1] -> colour along p0..p4
   const stops = ["--p0", "--p1", "--p2", "--p3", "--p4"].map(css);
   const i = Math.min(3, Math.floor(t * 4)), f = t * 4 - i;
@@ -211,7 +264,23 @@ function ramp(t) { // t in [0,1] -> colour along p0..p4
 }
 function hex(h) { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
 const tOf = p => Math.max(0, Math.min(1, Math.log10(1 + p) / Math.log10(1 + pHi)));
-function drawRamp() { const r = $("ramp").getContext("2d"); for (let x = 0; x < 150; x++) { r.fillStyle = ramp(x / 149); r.fillRect(x, 0, 1, 8); } }
+function drawRamp() { const c = $("ramp"); if (!c) return; const r = c.getContext("2d"); for (let x = 0; x < 150; x++) { r.fillStyle = ramp(x / 149); r.fillRect(x, 0, 1, 8); } }
+function legend() {
+  const L = $("legend");
+  if (layer === "routes") {
+    L.innerHTML = `<div>People per ~0.5 km cell</div><canvas class="ramp" id="ramp" width="150" height="8"></canvas>
+      <div class="row" style="justify-content:space-between;width:150px"><span>1</span><span>${fmt(pHi)}+</span></div>
+      <div class="row"><span style="color:var(--mag)">━ RWY 34C (2W)</span><span style="color:var(--teal)">━ RWY 34L (3X)</span></div>
+      <div class="muted">Published SID tracks · ○ 10 / 20 / 40 km</div>`;
+    drawRamp(); return;
+  }
+  const C = LAYERS[layer], cols = layer === "dens" ? trkCols() : nCols();
+  const sw = C.steps.map((t, j) => `<span style="background:${cols[Math.min(cols.length - 1, Math.round(j * (cols.length - 1) / (C.steps.length - 1)))]}"></span>`).join("");
+  L.innerHTML = `<div>${C.title}</div><div class="swatches">${sw}</div>
+    <div class="ticks">${C.steps.map(t => `<span>${t}</span>`).join("")}</div>
+    <div class="muted">${C.unit} · grey: residents · 500 m cells</div>
+    <div class="muted">Departures only · not an annual contour</div>`;
+}
 function size() {
   const dpr = window.devicePixelRatio || 1, cssW = cv.clientWidth, cssH = cv.clientHeight;
   cv.width = cssW * dpr; cv.height = cssH * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); W = cssW; H = cssH;
@@ -222,18 +291,32 @@ function draw() {
   ctx.fillStyle = css("--sheet"); ctx.fillRect(0, 0, W, H);
   // graticule
   ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1; ctx.font = "500 10px " + css("--mono"); ctx.fillStyle = css("--muted");
-  for (let lo = Math.ceil(E.west * 4) / 4; lo <= E.east; lo += 0.25) { const [x] = proj(lo, E.south); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); if (Math.abs(lo % 1) < 1e-9 || Math.abs(lo % 0.5) < 1e-9) ctx.fillText(lo.toFixed(1) + "°E", x + 3, H - 6); }
-  for (let la = Math.ceil(E.south * 4) / 4; la <= E.north; la += 0.25) { const [, y] = proj(E.west, la); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); if (Math.abs(la % 0.5) < 1e-9) ctx.fillText(la.toFixed(1) + "°N", 4, y - 3); }
+  for (let lo = Math.ceil(E.west * 4) / 4; lo <= E.east; lo += 0.25) { const [x] = proj(lo, E.south); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); if (E !== D.extent || Math.abs(lo % 0.5) < 1e-9) ctx.fillText(lo.toFixed(2).replace(/0$/, "") + "°E", x + 3, H - 6); }
+  for (let la = Math.ceil(E.south * 4) / 4; la <= E.north; la += 0.25) { const [, y] = proj(E.west, la); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); if (E !== D.extent || Math.abs(la % 0.5) < 1e-9) ctx.fillText(la.toFixed(2).replace(/0$/, "") + "°N", 4, y - 3); }
   // population
   const b = P.bin_deg, cw = b * kx * sc + 0.6, ch = b * sc + 0.6;
-  for (const [lo, la, p] of grid) { const [x, y] = proj(lo - b / 2, la + b / 2); ctx.fillStyle = ramp(tOf(p)); ctx.fillRect(x, y, cw, ch); }
+  const grey = layer !== "routes", gi = hex(css("--muted")), gb = hex(css("--sheet"));
+  for (const [lo, la, p] of grid) {
+    const [x, y] = proj(lo - b / 2, la + b / 2), t = tOf(p);
+    ctx.fillStyle = grey ? `rgb(${gi.map((v, k) => Math.round(gb[k] + (v - gb[k]) * (0.12 + 0.45 * t))).join(",")})` : ramp(t);
+    ctx.fillRect(x, y, cw, ch);
+  }
+  if (grey && N) { // noise / density cells (500 m), on top of the grey population
+    const C = LAYERS[layer], dl = N.cell_m / 110574, dlo = N.cell_m / (111320 * Math.cos(D.arp.lat * Math.PI / 180));
+    const w = dlo * kx * sc + 0.5, h = dl * sc + 0.5;
+    ctx.globalAlpha = 0.82;
+    for (const c of N.cells) { const col = stepColor(c[C.i], C.steps); if (!col) continue; const [x, y] = proj(c[0] - dlo / 2, c[1] + dl / 2); ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
+    ctx.globalAlpha = 1;
+  }
   // rings
   const [ax, ay] = proj(D.arp.lon, D.arp.lat);
   ctx.setLineDash([3, 4]); ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1;
   for (const km of [10, 20, 40]) { const ry = km / 111.32 * sc, rx = km / (111.32 * Math.cos(D.arp.lat * Math.PI / 180)) * kx * sc; ctx.beginPath(); ctx.ellipse(ax, ay, rx, ry, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillText(km + " km", ax + rx + 3, ay - 2); }
   ctx.setLineDash([]);
+  // runways (AIP thresholds)
+  if (N) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 3; ctx.lineCap = "butt"; for (const r of N.runways) { const [x1, y1] = proj(...r.a), [x2, y2] = proj(...r.b); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); } }
   // routes
-  const order = [...D.sids].sort((a, b) => (a.sid === selected) - (b.sid === selected));
+  const order = layer !== "routes" ? [] : [...D.sids].sort((a, b) => (a.sid === selected) - (b.sid === selected));
   for (const s of order) {
     if (runway !== "all" && s.runway !== runway) continue;
     const col = s.runway === "34C" ? css("--mag") : css("--teal");
@@ -252,7 +335,7 @@ function draw() {
   // waypoints of visible routes (fly-by triangles), exits labelled
   const seen = new Set();
   ctx.font = "600 11px " + css("--display");
-  for (const s of D.sids) {
+  for (const s of (layer === "routes" ? D.sids : [])) {
     if (runway !== "all" && s.runway !== runway) continue;
     if (selected && s.sid !== selected) continue;
     s.fixes.forEach((f, i) => {
@@ -270,12 +353,18 @@ function draw() {
 // hover: population bin under cursor
 const binIndex = new Map(); const bdeg = P.bin_deg;
 for (const g of grid) binIndex.set(Math.round(g[0] / bdeg) + ":" + Math.round(g[1] / bdeg), g);
+const cellIndex = new Map(); const cdl = N ? N.cell_m / 110574 : 1, cdlo = N ? N.cell_m / (111320 * Math.cos(D.arp.lat * Math.PI / 180)) : 1;
+if (N) for (const c of N.cells) cellIndex.set(Math.round(c[0] / cdlo) + ":" + Math.round(c[1] / cdl), c);
 cv.addEventListener("mousemove", e => {
   const r = cv.getBoundingClientRect(), [lo, la] = unproj(e.clientX - r.left, e.clientY - r.top);
   const g = binIndex.get(Math.round(lo / bdeg) + ":" + Math.round(la / bdeg));
   const tip = $("tip");
-  if (!g) { tip.hidden = true; return; }
-  tip.hidden = false; tip.textContent = `${fmt(g[2])} people · ${la.toFixed(3)}°N ${lo.toFixed(3)}°E`;
+  const c = layer !== "routes" && N ? cellIndex.get(Math.round(lo / cdlo) + ":" + Math.round(la / cdl)) : null;
+  if (!g && !c) { tip.hidden = true; return; }
+  const parts = [];
+  if (c) parts.push(`Lden ${c[2] >= 42 ? c[2].toFixed(0) : "<42"} · Lnight ${c[3] >= 30 ? c[3].toFixed(0) : "—"} · N70 ${c[4]} · ${c[5]} departures overhead`);
+  if (g) parts.push(`${fmt(g[2])} people (0.5 km cell)`);
+  tip.hidden = false; tip.textContent = parts.join(" · ");
   tip.style.left = Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 6) + "px"; tip.style.top = (e.clientY - r.top + 12) + "px";
 });
 cv.addEventListener("mouseleave", () => $("tip").hidden = true);
@@ -400,18 +489,108 @@ function fleetTable() {
 
 /* ---------- notes + provenance ---------- */
 $("notes").innerHTML = [
-  "Route figures count people near the published SID ground tracks (fix-to-fix legs), not flown trajectories, and say nothing yet about noise levels. Flown tracks (A2) and the Doc 29 noise model replace them in the next stage.",
-  "Context from the A2 coverage assessment (1 Oct 2026, pilot take-off filter): 208 candidate departures from RWY 34C and 23 from RWY 34L. On the published tracks, the early 34L legs pass over far more residents than the 34C legs, so how traffic splits between the runways matters for exposure.",
-  "The dotted segment from the airport to each route's first fix is a placeholder: runway-threshold coordinates are not in the project data, so it is excluded from every count.",
+  "Noise layers are departures only, for one day (1 Oct 2026, UTC): no arrivals, ground noise or other days. Lden, Lnight and the WHO indicators are therefore a single-day departure picture, not annual or regulatory contours.",
+  "Assumptions of the noise run: full take-off thrust (Doc 29 Vol 2 §3.5 for hot conditions; reduced-thrust take-offs would lower near-runway levels), start of roll at the runway threshold, flat terrain, aircraft engines unknown for most airframes (Doc 29 conservative variant). Atmospheric (Appendix D) and impedance adjustments use the METAR closest to each take-off.",
+  "Flown departures are shown only as a density (departures per 500 m cell); individual Wingbits tracks are not published. SID matching in A2 was mostly ambiguous or unmatched, so results are reported by runway, not by procedure.",
+  "Route figures in the rail count people near the published SID ground tracks (fix-to-fix legs). The dotted segment from the airport to each route's first fix is a placeholder and is excluded from every count.",
   "WorldPop 2026 is a modelled residential estimate (alpha release R2025A), not a census; it shows where people sleep, not where they work or travel.",
-  "NPD curves are baseline levels. Duration, engine-installation, lateral-attenuation, impedance and atmospheric adjustments belong to the noise model; on 1 October 2026 air temperature at OEJN was ≥ 30 °C for 17 of 24 hours, outside the Doc 29 NPD applicability envelope, so the atmospheric adjustment will be required.",
-  "A339, B78X and B39M are mapped to proxies but stay unusable until their certified levels are entered (Eq. 6-1). No silent Δ = 0.",
+  "The NPD explorer shows baseline levels; the noise layers include the duration, engine-installation, lateral-attenuation, finite-segment, start-of-roll, impedance and atmospheric adjustments of Doc 29.",
+  "B78X and A339 have no certified levels in the EASA tables yet: their departures are modelled on the ANP proxy with Δ = 0 and flagged (hatched in the aircraft chart), not hidden.",
   ...D.aip_notes.map(n => "AIP check: " + n),
 ].map(n => `<li>${n}</li>`).join("");
-$("prov").textContent = `Data releases: ${D.generated_from.a5} · ${D.generated_from.a6} (${P.summary.source_mode === "study_area_extract" ? "study-area extract of the locked WorldPop file" : "national WorldPop file"})`;
+$("prov").textContent = `Data releases: ${D.generated_from.a5} · ${D.generated_from.a6}${N ? " · " + N.release : ""} (${P.summary.source_mode === "study_area_extract" ? "study-area extract of the locked WorldPop file" : "national WorldPop file"})`;
+
+/* ---------- map layers ---------- */
+document.querySelectorAll(".layers button").forEach(bt => bt.onclick = () => {
+  layer = bt.dataset.layer; E = layer === "routes" ? D.extent : NZ;
+  document.querySelectorAll(".layers button").forEach(x => x.setAttribute("aria-pressed", x === bt)); size(); legend(); draw();
+});
+if (!N) document.querySelector(".layers").hidden = true;
+
+/* ---------- noise panels ---------- */
+let xmetric = "lden", sthr = "l65";
+function lede() {
+  const pk = (arr, t) => arr.find(x => x.t === t)?.pop;
+  const items = [
+    [N.coverage.modelled, `departures modelled (of ${N.coverage.in_scope} reconstructed by A2)`, false],
+    [pk(N.lden, 55), "residents at Lden ≥ 55 dB", true],
+    [pk(N.lden, 65), "residents at Lden ≥ 65 dB", true],
+    [pk(N.lnight, 50), "residents at Lnight ≥ 50 dB", true],
+    [pk(N.n70, 10), "residents hearing ≥ 10 departures above 70 dB", true],
+  ];
+  $("lede").innerHTML = items.map(([v, l, k]) => `<div><span class="bignum num">${k ? fmtK(v) : fmt(v)}</span><span>${l}</span></div>`).join("");
+  const c = N.coverage;
+  $("covnote").textContent = `Coverage: ${c.modelled} modelled (34C ${c.by_runway["34C"]}, 34L ${c.by_runway["34L"]}; day ${c.by_period.day}, evening ${c.by_period.evening}, night ${c.by_period.night}). Not modelled: ${c.no_type} with no aircraft type in the identity database, ${c.unmapped} helicopters / light aircraft, ${c.path_failed} whose take-off was not observed near the runway. ${c.proxy} departures (B78X, A339) use an ANP proxy with Δ = 0. WHO 2018 exposure–response, indicative only: ${fmtK(N.who.ha)} highly annoyed, ${fmtK(N.who.hsd)} highly sleep-disturbed.`;
+}
+function expo() {
+  const box = $("expo"); box.innerHTML = "";
+  const arr = N[xmetric], w = 760, h = 230, l = 56, b = 34, t = 14, r = 8;
+  const max = Math.max(...arr.map(x => x.pop)), bw = (w - l - r) / arr.length;
+  const ys = v => t + (h - t - b) * (1 - v / max), g = svg(w, h), gg = el("g", {class: "grid"}, g);
+  [0, .25, .5, .75, 1].forEach(f => { el("line", {x1: l, x2: w - r, y1: ys(f * max), y2: ys(f * max)}, gg); txt(g, l - 6, ys(f * max) + 4, fmtK(f * max), {"text-anchor": "end"}); });
+  const cols = nCols();
+  arr.forEach((x, i) => {
+    const X = l + i * bw + bw * 0.14, Y = ys(x.pop);
+    el("rect", {x: X, y: Y, width: bw * 0.72, height: h - b - Y, fill: cols[Math.min(4, Math.round(i * 4 / (arr.length - 1)))]}, g);
+    txt(g, X + bw * 0.36, Y - 5, fmtK(x.pop), {"text-anchor": "middle", style: "fill:var(--ink)"});
+    txt(g, X + bw * 0.36, h - b + 16, (xmetric === "n70" ? "≥ " + x.t + " ev." : "≥ " + x.t + " dB"), {"text-anchor": "middle"});
+  });
+  box.appendChild(g);
+  $("xnote").textContent = {lden: "Residents at or above each Lden level (day-evening-night, +5/+10 dB penalties)", lnight: "Residents at or above each Lnight level (23:00–07:00 local)", n70: "Residents who heard at least N departures with LAmax ≥ 70 dB that day"}[xmetric];
+}
+function setX(m) { xmetric = m; ["lden", "lnight", "n70"].forEach(k => $("x-" + k).setAttribute("aria-pressed", k === m)); expo(); }
+function same() {
+  const box = $("same"); box.innerHTML = "";
+  const S = N.same_type, w = 520, h = 250, l = 50, b = 40, t = 16, r = 8;
+  const max = Math.max(...S.flatMap(x => [x["34C_" + sthr], x["34L_" + sthr]])) * 1.15;
+  const ys = v => t + (h - t - b) * (1 - v / max), g = svg(w, h), gg = el("g", {class: "grid"}, g);
+  [0, .5, 1].forEach(f => { el("line", {x1: l, x2: w - r, y1: ys(f * max), y2: ys(f * max)}, gg); txt(g, l - 6, ys(f * max) + 4, fmtK(f * max), {"text-anchor": "end"}); });
+  const gw = (w - l - r) / S.length;
+  S.forEach((x, i) => {
+    [["34C", "var(--mag)"], ["34L", "var(--teal)"]].forEach(([rw, col], j) => {
+      const v = x[rw + "_" + sthr], X = l + i * gw + gw * (0.15 + j * 0.36), Y = ys(v);
+      el("rect", {x: X, y: Y, width: gw * 0.32, height: h - b - Y, fill: col}, g);
+      txt(g, X + gw * 0.16, Y - 5, fmtK(v), {"text-anchor": "middle", style: "fill:var(--ink)"});
+      txt(g, X + gw * 0.16, h - b + 28, `${rw} n=${x[rw + "_n"]}`, {"text-anchor": "middle"});
+    });
+    txt(g, l + i * gw + gw / 2, h - b + 14, x.type, {"text-anchor": "middle", style: "fill:var(--ink);font-weight:600"});
+  });
+  box.appendChild(g);
+  $("samenote").textContent = "For the same aircraft type the two runways expose similar numbers of residents per departure. The day's gap between runways comes from traffic volume and fleet mix: 34C carries most departures and almost all widebodies. 34L samples are small.";
+}
+function setS(k) { sthr = k; $("s-65").setAttribute("aria-pressed", k === "l65"); $("s-70").setAttribute("aria-pressed", k === "l70"); same(); }
+function types() {
+  const T = N.types.filter(x => x.n >= 2), box = $("types"); box.innerHTML = "";
+  const w = 520, rh = 22, l = 64, r = 70, h = T.length * rh + 10, max = Math.max(...T.map(x => x.l70));
+  const g = svg(w, h);
+  const defs = el("defs", {}, g), pat = el("pattern", {id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)"}, defs);
+  el("rect", {width: 6, height: 6, fill: "var(--n1)"}, pat); el("line", {x1: 0, y1: 0, x2: 0, y2: 6, stroke: "var(--n3)", "stroke-width": 3}, pat);
+  T.forEach((x, i) => {
+    const y = 4 + i * rh, bw = (w - l - r) * x.l70 / max;
+    txt(g, l - 8, y + 13, x.type, {"text-anchor": "end", style: "fill:var(--ink);font-weight:600"});
+    el("rect", {x: l, y, width: Math.max(bw, 1), height: rh - 7, fill: x.pending ? "url(#hatch)" : (x.cls === "widebody" ? "var(--n3)" : "var(--n2)")}, g);
+    txt(g, l + bw + 6, y + 13, `${fmtK(x.l70)} · n=${x.n}`);
+  });
+  box.appendChild(g);
+}
+function nval() {
+  const V = N.validation;
+  $("nval").innerHTML = `<div><dt>Vol 3 B-2 segments</dt><dd class="num">${fmt(V.b2_rows)} · ≤ ${V.b2_max_db.toExponential(1)} dB</dd></div>
+    <div><dt>Vol 3 B-1 events</dt><dd class="num">≤ ${V.b1_max_db.toExponential(1)} dB</dd></div>
+    <div><dt>Thrust D-2</dt><dd class="num">${V.d2_points} / ${V.d2_points}</dd></div>
+    <div><dt>Atmosphere D-4</dt><dd class="num">&lt; ${V.d4_max_db} dB</dd></div>
+    <div><dt>Observed-track end-to-end</dt><dd class="num">≤ ${V.e2e_max_db} dB</dd></div>`;
+  $("nqc").innerHTML = `<thead><tr><th>Run check</th><th>Status</th><th>Detail</th></tr></thead><tbody>` +
+    N.qc.map(q => `<tr><td class="mono">${q.check}</td><td><span class="pill ${q.status === "PASS" ? "HIGH" : "LOW"}">${q.status}</span></td><td style="white-space:normal;min-width:320px">${q.detail}</td></tr>`).join("") + "</tbody>";
+}
+if (N) {
+  $("x-lden").onclick = () => setX("lden"); $("x-lnight").onclick = () => setX("lnight"); $("x-n70").onclick = () => setX("n70");
+  $("s-65").onclick = () => setS("l65"); $("s-70").onclick = () => setS("l70");
+  lede(); expo(); same(); types(); nval();
+} else $("noisepanels").hidden = true;
 
 /* ---------- boot + theme ---------- */
-function all() { size(); drawRamp(); draw(); }
+function all() { size(); legend(); draw(); if (N) { expo(); same(); types(); } }
 rail(); detail(); rings(); npd(); brk("A20N"); v3(); fleetTable(); all();
 new ResizeObserver(() => all()).observe(cv);
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", all);
