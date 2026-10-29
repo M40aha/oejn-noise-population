@@ -166,7 +166,7 @@ def main():
     L.append("> **Departures only, one day.** No arrivals, ground noise or other days. Full take-off thrust assumed. "
              "The values describe this day's departure noise; they are not annual or regulatory contours.\n")
     L.append("## Coverage\n")
-    L.append("| A2 events | accepted departures (in scope) | modelled | no aircraft type (A3) | type not mappable (helicopter / piston / CL61) | path failed |")
+    L.append("| A2 events | accepted departures (in scope) | modelled | no aircraft type | type not mappable (helicopter / piston / CL61) | path failed |")
     L.append("|---|---|---|---|---|---|")
     L.append(f"| {man['flights_total']} | {man['flights_in_scope']} | **{man['flights_modelled']}** | {st.get('NO_TYPE', 0)} | "
              f"{st.get('UNMAPPED', 0)} | {st.get('PATH_FAILED', 0)} |\n")

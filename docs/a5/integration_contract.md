@@ -3,7 +3,7 @@
 Conventions between stages: **SI units, UTC timestamps, WGS84 coordinates.** A5 tables keep native ANP units
 internally (see `units_registry`).
 
-## A3 → A5 (aircraft identity, one row per flight or per airframe)
+## Aircraft identity → A5 (one row per flight or per airframe)
 
 | field | required | example | note |
 |---|---|---|---|
@@ -13,11 +13,11 @@ internally (see `units_registry`).
 | `mtow_kg` | no | `79000` | certified MTOW option; otherwise the highest MTOW is assumed |
 | `identity_source`, `lookup_date` | yes | `OpenSky aircraft DB`, `2026-10-27` | provenance |
 
-A5 never looks up ICAO24 addresses or registrations; that belongs to A3.
+A5 never looks up ICAO24 addresses or registrations; that belongs to the aircraft-identity input (OpenSky / adsbdb in the noise run).
 
 ```python
 from a5.mapping import Mapper, MappingPolicy
-mapping, candidates = mapper.resolve(a3_records)   # same columns as aircraft_noise_mapping
+mapping, candidates = mapper.resolve(identity_records)   # same columns as aircraft_noise_mapping
 ```
 
 ## A5 → noise model

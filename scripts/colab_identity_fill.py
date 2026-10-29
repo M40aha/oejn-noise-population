@@ -1,9 +1,9 @@
 """Fill aircraft types that the OpenSky database does not know (new airframes), in Colab (internet access).
 
-    python scripts/colab_identity_fill.py  data/inputs/a3_aircraft_identity.csv  data/inputs/a2/a2_noise_flights.csv
+    python scripts/colab_identity_fill.py  data/inputs/aircraft_identity.csv  data/inputs/a2/a2_noise_flights.csv
 
 For every icao24 of an accepted departure whose icao_type is empty, queries hexdb.io (community Mode-S database)
-and writes data/inputs/a3_aircraft_identity_fill.csv with the same columns (source = hexdb.io, lookup date).
+and writes data/inputs/aircraft_identity_fill.csv with the same columns (source = hexdb.io, lookup date).
 The noise model uses a filled row only where the primary file has no type. Nothing is guessed: not found stays empty.
 """
 import datetime as dt
@@ -35,7 +35,7 @@ for ic in todo:
     time.sleep(0.5)
 out = pd.DataFrame(rows)
 out["lookup_date"] = dt.date.today().isoformat()
-p = Path(sys.argv[1]).with_name("a3_aircraft_identity_fill.csv")
+p = Path(sys.argv[1]).with_name("aircraft_identity_fill.csv")
 out.to_csv(p, index=False)
 print(f"{len(todo)} untyped departures' aircraft; type found for {int((out.icao_type.fillna('') != '').sum())} -> {p}")
 print(out[["icao24", "registration", "icao_type", "model", "operator"]].to_string())

@@ -246,7 +246,7 @@ def test_pipeline_on_synthetic_inputs(tmp_path, monkeypatch):
     cfg_p.write_text(yaml.safe_dump(cfg))
     monkeypatch.setenv("NOISE_A2_DIR", str(tmp_path / "in" / "a2"))
     monkeypatch.setenv("NOISE_METAR_CSV", str(tmp_path / "in" / "ext_metar_oejn.csv"))
-    monkeypatch.setenv("NOISE_A3_CSV", str(tmp_path / "in" / "a3_aircraft_identity.csv"))
+    monkeypatch.setenv("NOISE_IDENTITY_CSV", str(tmp_path / "in" / "aircraft_identity.csv"))
     from noise import run
     man = run.main(cfg_p, tmp_path / "out")
     proc = tmp_path / "out" / "data" / "noise" / "processed"

@@ -2,7 +2,7 @@
 
     python -m noise.run                  (from src/, or PYTHONPATH=src)
 
-Inputs (config/noise.yaml): A2 trajectory extract, METAR, optional A3 aircraft identity, A1 runways,
+Inputs (config/noise.yaml): A2 trajectory extract, METAR, optional aircraft identity (OpenSky / adsbdb), A1 runways,
 A5 release (ANP 2.3 + mapping), A6 receptors. Outputs under data/noise/{processed,validation} and docs/noise/.
 """
 from __future__ import annotations
@@ -31,8 +31,11 @@ from .site import FT, Site, prepare_observations
 from .weather import load_metar, met_for
 
 ROOT = Path(__file__).resolve().parents[2]
-ENV = {"a2_dir": "NOISE_A2_DIR", "metar_csv": "NOISE_METAR_CSV", "aircraft_identity_csv": "NOISE_A3_CSV",
-       "aircraft_identity_fill_csv": "NOISE_A3_FILL_CSV"}
+ENV = {"a2_dir": "NOISE_A2_DIR", "metar_csv": "NOISE_METAR_CSV", "aircraft_identity_csv": "NOISE_IDENTITY_CSV",
+       "aircraft_identity_fill_csv": "NOISE_IDENTITY_FILL_CSV"}
+# earlier names of the identity input (it was called "A3" before A3 turned out to be the OpenAP performance stage)
+LEGACY_ENV = {"aircraft_identity_csv": "NOISE_A3_CSV", "aircraft_identity_fill_csv": "NOISE_A3_FILL_CSV"}
+LEGACY_FILE = {"aircraft_identity.csv": "a3_aircraft_identity.csv", "aircraft_identity_fill.csv": "a3_aircraft_identity_fill.csv"}
 
 
 def sha(p: Path) -> str:
@@ -44,9 +47,12 @@ def sha(p: Path) -> str:
 
 
 def path_of(cfg, key) -> Path:
-    v = os.environ.get(ENV.get(key, ""), cfg["inputs"][key])
+    v = os.environ.get(ENV.get(key, "")) or os.environ.get(LEGACY_ENV.get(key, "")) or cfg["inputs"][key]
     p = Path(v)
-    return p if p.is_absolute() else ROOT / p
+    p = p if p.is_absolute() else ROOT / p
+    if not p.exists() and p.name in LEGACY_FILE and (p.parent / LEGACY_FILE[p.name]).exists():
+        p = p.parent / LEGACY_FILE[p.name]
+    return p
 
 
 # ------------------------------------------------------------------------------------------------ setup
@@ -93,7 +99,7 @@ def bilinear_weights(ax_m, ex_m, ny_m):
 
 
 def resolve_aircraft(flights, ident, t, cfg, qc):
-    """A5 Mapper per flight. Type/engine from A3 identity (OpenSky / adsbdb) when available."""
+    """A5 Mapper per flight. Type/engine from the aircraft-identity file (OpenSky / adsbdb) when available."""
     f = flights.copy()
     f["icao24"] = f.icao24.str.lower()
     if ident is not None:
@@ -239,7 +245,7 @@ def main(cfg_file: Path = ROOT / "config" / "noise.yaml", out_root: Path | None 
     qc.append(("inputs.metar", "PASS" if metar is not None else "WARNING",
                f"METAR rows: {len(metar)}" if metar is not None else "no METAR file: weather fallback for every flight"))
     qc.append(("inputs.aircraft_identity", "PASS" if ident is not None else "WARNING",
-               f"A3 identity rows: {len(ident)}" if ident is not None else "no A3 identity file: aircraft type unknown for every flight"))
+               f"aircraft identity rows: {len(ident)}" if ident is not None else "no aircraft identity file: aircraft type unknown for every flight"))
 
     # flights in scope
     f = flights.copy()

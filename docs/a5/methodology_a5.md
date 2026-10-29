@@ -12,7 +12,7 @@ Eq. 4-3, 4-4 and 4-5.
 A5 deliberately does **not** compute anything that depends on the flight or the weather: thrust along a
 trajectory, acoustic impedance (Eq. 4-6), atmospheric absorption (Appendix D), duration, engine-installation,
 lateral-attenuation and finite-segment corrections, or contours. These belong to the noise-model stage and use
-A2 (trajectories), A3 (aircraft identity) and A4 (weather) as inputs.
+A2 (trajectories), an aircraft-identity input (ICAO24 → type / engine; OpenSky / adsbdb in the noise run) and weather (METAR) as inputs.
 
 ## 2. Sources
 
@@ -72,7 +72,7 @@ reset to 1 lb before extrapolating; slant distance is floored at 30 m (recommend
 extrapolation that moves the level more than 5 dB beyond the envelope edge is flagged, never clipped.
 
 ## 7. Aircraft → ANP mapping (Doc 29 Vol 1 §6.4.4)
-Input from A3: ICAO type (required), airframe model, engine type, MTOW (optional). The first applicable rule wins,
+Input from the aircraft identity: ICAO type (required), airframe model, engine type, MTOW (optional). The first applicable rule wins,
 and every candidate is stored in `mapping_candidates`:
 
 | Method | Rule | Confidence |

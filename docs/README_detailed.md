@@ -41,7 +41,7 @@ level = npd.lookup(m.npd_id, "SEL", "D", power=20000, distance_ft=3000).level_db
 # A6: population receptors (one point per populated 100 m cell)
 rec = pd.read_parquet("data/a6/processed/a6_receptors.parquet")   # x_utm37n_m, y_utm37n_m, population, ...
 ```
-For flights with engine / model / MTOW from A3: `a5.mapping.Mapper.resolve(records)` (see `docs/a5/integration_contract.md`).
+For flights with engine / model / MTOW from the aircraft identity: `a5.mapping.Mapper.resolve(records)` (see `docs/a5/integration_contract.md`).
 
 ## Rebuild and verify
 
@@ -79,7 +79,7 @@ data/noise/        processed/ (grid, GeoTIFF, exposure, per-flight results) · v
 docs/noise/        methodology_noise.md · results_2026-10-01.md · figures (Lden, Lnight, N70, tracks, runways)
 data/external/basemap/  Natural Earth + OSM layers (from A1 Map 1) with provenance
 scripts/           independent A5 verification · A6 study-area extractor · 3D map builder · noise figures · A2 noise extract ·
-                   Colab METAR/A3 fetch · synthetic noise inputs (pipeline testing only)
+                   Colab METAR / aircraft-identity fetch · synthetic noise inputs (pipeline testing only)
 tests/             test_a5.py (21) · test_a6.py (12) · test_noise.py (17) · fixtures/doc29_vol3 (Vol 3 reference tables)
 ```
 
@@ -100,7 +100,7 @@ workbooks), EASA substitution tables (19,565 certified configurations), EASA ver
 8. **Validation:** referential integrity across all tables, physics checks, exact long/wide round-trip, EASA internal consistency, and the **ECAC Vol 3 reference cases reproduced** (3,516 segments).
 
 **Findings the team should know**
-- **A320neo family:** engine unknown → A320-232, Δ = −3.5 dB (conservative). With engine + MTOW the configuration can be down to −8.3 dB. **A3 must supply engine type (and MTOW option if possible).**
+- **A320neo family:** engine unknown → A320-232, Δ = −3.5 dB (conservative). With engine + MTOW the configuration can be down to −8.3 dB. **The aircraft-identity input must supply the engine type (and MTOW option if possible).**
 - **787-9:** Δ ranges −1.8 … +3.2 dB with the certified MTOW option, for the same engine.
 - **A339, B78X, B39M** are absent from EASA tables → proxies A330-343 / 7878R / 7378MAX, **pending** certified levels (`data/a5/reviews/analyst_proxies.csv`, Eq. 6-1). Not usable until filled; no silent Δ = 0.
 - **ANP 2.3 source inconsistency:** 5 default stage-length weights exceed MTOW (incl. A320-232, A321-232); preserved and flagged.
@@ -139,7 +139,7 @@ take-off thrust, start of roll at the threshold, flat terrain, and departures on
 
 | # | Item | Owner |
 |---|---|---|
-| 1 | Engine type (+ MTOW option) per airframe from ICAO24 | A3 |
+| 1 | Engine type (+ MTOW option) per airframe from ICAO24 | aircraft identity (OpenSky / adsbdb) |
 | 2 | METAR OEJN for 1 Oct (temperature, dew point → RH, QNH): `scripts/colab_external_data.py`. The Appendix D adjustment and the QNH height conversion are implemented in `src/noise/` | A4 / Colab |
 | 3 | A2 trajectory extract for the noise model: `scripts/a2_noise_extract.py` | A2 |
 | 4 | Certified levels for A339 / B78X / B39M (EASA certification noise levels) | A5 |

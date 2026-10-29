@@ -202,7 +202,7 @@ class Mapper:
                                 f"({', '.join(f'{v}: {p} {d:+.1f} dB' for v, p, d in zip(it.variant, it.anp_proxy, it.delta_dep_db))}); "
                                 f"engine unknown -> {r.variant} ({why})",
                        source_ref=f"{r.src_file} | by ICAO code | row {r.src_row}",
-                       notes="; ".join(notes + ([tie] if tie else []) + ["resolve the engine (A3) to remove this ambiguity"]))
+                       notes="; ".join(notes + ([tie] if tie else []) + ["resolve the engine (aircraft identity) to remove this ambiguity"]))
             return res, cands
 
         res["notes"] = "; ".join(notes + [f"{icao or '(blank)'} not in EASA substitution tables or analyst proxies"])
@@ -281,7 +281,7 @@ def mapping_qc(mp: pd.DataFrame, anp_aircraft: pd.DataFrame, npd_ids: set[str], 
 
 
 def flight_weighted_coverage(mapping: pd.DataFrame, flights: pd.DataFrame, key: str = "icao_type") -> pd.DataFrame:
-    """Coverage weighted by observed flights. flights: one row per flight with `key` (from A2/A3)."""
+    """Coverage weighted by observed flights. flights: one row per flight with `key` (from A2 / aircraft identity)."""
     f = flights.merge(mapping[[key, "mapping_method", "confidence", "usable_for_noise"]].drop_duplicates(key),
                       on=key, how="left")
     f["mapping_method"] = f.mapping_method.fillna("UNRESOLVED")

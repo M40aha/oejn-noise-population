@@ -6,7 +6,7 @@
    Iowa Environmental Mesonet ASOS/METAR archive -> ext_metar_oejn.csv
 2. Aircraft identity for every departure icao24: registration, ICAO type, model, engine, operator.
    Primary source: OpenSky Network aircraft database (monthly CSV). Fallback for missing rows: adsbdb.com API
-   (type only, no engine). -> a3_aircraft_identity.csv
+   (type only, no engine). -> aircraft_identity.csv
 Every row records its source and lookup date. Nothing is guessed: missing stays empty.
 """
 import datetime as dt
@@ -86,7 +86,7 @@ def identity(flights_csv, out):
         time.sleep(0.3)
     df = pd.DataFrame(rows)
     df["lookup_date"] = dt.date.today().isoformat()
-    df.to_csv(out / "a3_aircraft_identity.csv", index=False)
+    df.to_csv(out / "aircraft_identity.csv", index=False)
     print(f"aircraft: {len(icaos)} icao24, type found {int((df.icao_type != '').sum())}, engine found {int((df.engine_type != '').sum())}")
 
 

@@ -6,8 +6,8 @@ local_utc_offset_h: 3            # Asia/Riyadh, no DST
 inputs:                          # relative to the repository root; each can be overridden by an env var
   a2_dir: "data/inputs/a2"                         # NOISE_A2_DIR: a2_noise_departures.parquet, a2_noise_flights.csv, a2_noise_manifest.json
   metar_csv: "data/inputs/ext_metar_oejn.csv"      # NOISE_METAR_CSV (scripts/colab_external_data.py)
-  aircraft_identity_csv: "data/inputs/a3_aircraft_identity.csv"   # NOISE_A3_CSV (optional; without it the Doc 29 unknown-engine rule applies)
-  aircraft_identity_fill_csv: "data/inputs/a3_aircraft_identity_fill.csv"   # NOISE_A3_FILL_CSV (optional; scripts/colab_identity_fill.py, used only where the primary file has no type)
+  aircraft_identity_csv: "data/inputs/aircraft_identity.csv"   # NOISE_IDENTITY_CSV; ICAO24 -> type/engine from OpenSky / adsbdb (scripts/colab_external_data.py) (optional; without it the Doc 29 unknown-engine rule applies)
+  aircraft_identity_fill_csv: "data/inputs/aircraft_identity_fill.csv"   # NOISE_IDENTITY_FILL_CSV (optional; scripts/colab_identity_fill.py, used only where the primary file has no type)
   runways_csv: "data/external/a1_external_airport_runways.csv"    # A1 handoff (AIP AIRAC AMDT 10/26)
   a5_processed: "data/a5/processed"
   a6_receptors: "data/a6/processed/a6_receptors.parquet"

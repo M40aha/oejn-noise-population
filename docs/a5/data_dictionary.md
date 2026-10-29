@@ -200,14 +200,14 @@ Tidy reshape of the wide table; rows: 984
 | frequency_hz | Hz | 1/3-octave band centre frequency |
 | level_db | dB | Normalised band level |
 
-## `aircraft_noise_mapping` (integration contract A3 → A5 → noise model)
+## `aircraft_noise_mapping` (integration contract: aircraft identity → A5 → noise model)
 
 | column | description |
 |---|---|
 | icao_type | ICAO Doc 8643 type designator (input key) |
-| airframe_model_in | Airframe model supplied by A3 (optional input) |
-| engine_type_in | Engine type supplied by A3 (optional input) |
-| mtow_kg_in | MTOW supplied by A3 (optional input) |
+| airframe_model_in | Airframe model from the aircraft-identity input (optional) |
+| engine_type_in | Engine type from the aircraft-identity input (optional) |
+| mtow_kg_in | MTOW from the aircraft-identity input (optional) |
 | mapping_method | Resolution rule applied (see methodology) |
 | anp_acft_id | ANP aircraft used to model this type |
 | delta_dep_db | Departure decibel adjustment of the proxy (Doc 29 Vol 1 Method A) |

@@ -77,11 +77,15 @@ This is what is done; no procedure profile is imposed on the observed tracks.
 
 - **NPD:** A5 release (ANP 2.3), with interpolation linear in power and in lg(distance), end-pair extrapolation, a 30 m distance
   floor and a 1 lb power floor (A5 `NPDLookup` rules, reproduced exactly by `AdjustedNPD`).
-- **Aircraft substitution:** A5 `Mapper` with the A3 identity (ICAO type, model, engine) per ICAO24: EASA configuration → engine
+- **Aircraft substitution:** A5 `Mapper` with the aircraft identity per ICAO24 (ICAO type, model, engine; OpenSky aircraft database, adsbdb.com fallback, `scripts/colab_external_data.py`): EASA configuration → engine
   family → ICAO tab. Method A applies Δ dB to all metrics. Without an engine the Doc 29 Vol 1 conservative rule applies (highest
   MTOW, then highest certified departure level). The B78X / A339 / B39M analyst proxies have no certified levels yet; they are
   modelled with Δ = 0 and flagged `PROXY_ZERO_DELTA`. A type without any mapping is excluded and reported (`UNMAPPED`, `NO_TYPE`).
   Turboprops are reported, not modelled.
+  *Naming:* this identity input was called "A3" in early files. The team's A3 stage is the OpenAP aircraft-performance
+  library (fuel / performance), which is **not used** by the noise model. Outputs of release v1 (`flight_results.csv`,
+  `noise_qc.csv`, `noise_manifest.json`, A5 `aircraft_noise_mapping.csv`) still carry the old wording, e.g. "resolve the
+  engine (A3)"; they are kept unchanged as released. The run still accepts the old file name and `NOISE_A3_CSV`.
 - **Atmosphere (Appendix D):** for each flight, the METAR closest to lift-off (≤ 90 min) gives temperature and dew point (RH by
   Magnus) and QNH (Q group). Increments dL(d_i) at the 10 NPD distances are computed from the aircraft's departure spectral class
   (Eq. D-1 to D-4). They use ISO 9613-1 pure-tone absorption at exact mid-band frequencies, because the SAE ARP-5534 band
@@ -141,7 +145,7 @@ The run-time QC (`data/noise/validation/noise_qc.csv`) also reports:
 2. **Full take-off thrust** assumed. Reduced-thrust take-offs would lower near-runway levels; the effect is a sensitivity to report.
 3. **SOR = threshold** (full-length take-off). An intersection departure starts its roll further along the runway.
 4. **Flat terrain**, with no topography or ground-type adjustments; the Doc 29 standard lateral attenuation applies.
-5. **Aircraft identity** depends on A3: registration-level engine where found, otherwise the Doc 29 conservative variant. The
+5. **Aircraft identity** comes from OpenSky / adsbdb (not from a team stage): registration-level engine where found, otherwise the Doc 29 conservative variant. The
    three pending proxies (B78X, A339, B39M) use Δ = 0 until certified levels are entered.
 6. **SID attribution** follows A2. Most A2 matches are *unmatched* or *ambiguous*, so per-procedure results are reported only
    where A2 found a unique candidate. Per-runway results are robust.
@@ -171,10 +175,10 @@ The map only displays results of the run above; it recomputes nothing except the
 
 ```bash
 # inputs (git-ignored): data/inputs/a2/{a2_noise_departures.parquet,a2_noise_flights.csv,a2_noise_manifest.json},
-#                        data/inputs/ext_metar_oejn.csv, data/inputs/a3_aircraft_identity.csv
+#                        data/inputs/ext_metar_oejn.csv, data/inputs/aircraft_identity.csv
 PYTHONPATH=src python -m noise.run            # ≈ 5–9 s per departure per core on the 250 m grid
 PYTHONPATH=src python -m pytest -q tests/test_noise.py
 ```
-Env overrides: `NOISE_A2_DIR`, `NOISE_METAR_CSV`, `NOISE_A3_CSV`, `NOISE_OUT_ROOT`.
+Env overrides: `NOISE_A2_DIR`, `NOISE_METAR_CSV`, `NOISE_IDENTITY_CSV`, `NOISE_OUT_ROOT`.
 To test the pipeline end to end without real data: `python scripts/make_synthetic_noise_inputs.py /tmp/syn`. The files are
 invented; never report results from them.

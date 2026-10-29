@@ -1,9 +1,9 @@
-"""SYNTHETIC inputs for exercising the noise pipeline before the real A2 / METAR / A3 files arrive.
+"""SYNTHETIC inputs for exercising the noise pipeline before the real A2 / METAR / aircraft-identity files arrive.
 
     python scripts/make_synthetic_noise_inputs.py  <out_dir>  [n_flights]
 
 Writes <out_dir>/a2/{a2_noise_departures.parquet, a2_noise_flights.csv}, <out_dir>/ext_metar_oejn.csv and
-<out_dir>/a3_aircraft_identity.csv with the exact schemas of the real files. Trajectories are kinematic
+<out_dir>/aircraft_identity.csv with the exact schemas of the real files. Trajectories are kinematic
 departures from 34C / 34L (ground roll, climb, acceleration, a turn) sampled every 2 s with 25-ft altitude
 quantisation. Every value is invented: results computed from these files are NOT study results.
 """
@@ -99,7 +99,7 @@ def main(out, n=12):
     met.to_csv(out / "ext_metar_oejn.csv", index=False)
     pd.DataFrame([{"icao24": i, "registration": f"HZ-SY{k}", "icao_type": ty, "model": m, "engine_type": en, "operator_icao": "SYN",
                    "operator": "SYNTHETIC", "source": "synthetic", "source_url": "", "lookup_date": "2026-10-28"}
-                  for k, (i, ty, m, en) in enumerate(TYPES)]).replace({"icao_type": {"ZZZZ": ""}}).to_csv(out / "a3_aircraft_identity.csv", index=False)
+                  for k, (i, ty, m, en) in enumerate(TYPES)]).replace({"icao_type": {"ZZZZ": ""}}).to_csv(out / "aircraft_identity.csv", index=False)
     print("synthetic inputs written to", out)
 
 

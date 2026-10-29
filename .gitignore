@@ -7,6 +7,6 @@ docs/atlas/_preview.html
 # raw source data lives in the team data repository (OEJN-Noise-Fuel-Capacity), never here
 raw/
 *.zip
-# observed-traffic inputs (Wingbits evaluation data, A2 extract, METAR, A3) and per-flight geometry stay local
+# observed-traffic inputs (Wingbits evaluation data, A2 extract, METAR, aircraft identity) and per-flight geometry stay local
 data/inputs/
 data/noise/interim/

@@ -8,7 +8,7 @@
 | 4 | Doc 29 | 5th Edition, Vol 1–3; ARP-5534 for Appendix D | volume front matter | Locked |
 | 5 | Units | native ANP units + `units_registry`; SI at interfaces; exact constants | Doc 29 App. B coefficient units | Locked |
 | 6 | Mapping hierarchy | see methodology §7; Method A primary; categorical confidence | Doc 29 Vol 1 §6.4.4 | Locked |
-| 7 | A20N | engine from A3 → config tab; unknown → conservative IAE variant (−3.5 dB); bracket as sensitivity | Vol 1 p.45; config tab | Locked |
+| 7 | A20N | engine from the aircraft identity → config tab; unknown → conservative IAE variant (−3.5 dB); bracket as sensitivity | Vol 1 p.45; config tab | Locked |
 | 8 | A339/B78X/B39M | analyst proxies A330-343 / 7878R / 7378MAX; Δ by Eq. 6-1 from EASA TCDSN; pending = unusable | Vol 1 §6.4.4.1, Eq. 6-1 | Rule locked; Δ pending data |
 | 9 | NPD policy | Eq. 4-3/4-4/4-5; 1 lb floor; 30 m floor; flag > 5 dB power extrapolation | Vol 2 pp. 27–29 | Locked |
 | 10 | Validation | Vol 3 B-2 executable check; schema fixtures; unit constants; EASA consistency | Vol 3 §2 | Done: max diff 1.3e-13 dB |
@@ -27,5 +27,5 @@
 1. Request the EASA verified ANP dataset (form on the EASA ANP page).
 2. Enter certified levels for A339, B78X, B39M from the EASA type-certificate noise database, then set
    `review_status = REVIEWED` with reviewer and date.
-3. A3: supply engine type (and MTOW option where available) per airframe.
+3. Aircraft identity: supply engine type (and MTOW option where available) per airframe.
 4. A4: add relative humidity (ERA5 2 m dewpoint and pressure-level humidity) or the OEJN METAR.

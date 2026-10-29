@@ -126,4 +126,8 @@ Details: [`map3d/README.md`](map3d/README.md).
 - **Aircraft noise:** EASA ANP 2.3 and ECAC Doc 29.
 - **Population:** WorldPop 2026 (CC BY 4.0).
 - **Basemap:** OpenStreetMap (ODbL) and Natural Earth.
-- **Traffic:** ADS-B from Wingbits, via the team's A2 stage. Raw tracks are not included.
+- **Trajectories and runways:** ADS-B from Wingbits via the team's **A2** stage (raw tracks not included); runway
+  thresholds and OpenStreetMap layers from **A1**.
+- **Aircraft identity** (ICAO24 → type / engine): OpenSky aircraft database, with adsbdb.com as fallback. This is
+  not the team's A3 stage: A3 is OpenAP (fuel / performance) and is not used for noise.
+- **Weather:** OEJN METAR (Iowa Environmental Mesonet).
