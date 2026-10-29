@@ -185,7 +185,7 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
   // ---------- panel ----------
   const panel = document.createElement('div');
   panel.className = 'noise-panel';
-  panel.innerHTML = `<div class="noise-head"><small>NOISE · 1 OCT 2026 · LOCAL ONLY</small><button class="noise-more" type="button">Results ↗</button></div>
+  panel.innerHTML = `<div class="noise-head"><small>NOISE · 1 OCT 2026 · LOCAL</small><span class="noise-actions"><button class="noise-more" type="button">Results ↗</button><button class="noise-min" type="button" aria-label="Minimise noise panel" aria-expanded="true" title="Minimise">–</button></span></div>
     <div class="noise-seg" role="group" aria-label="Noise layer">
       <button data-l="off" aria-pressed="true">Off</button>${Object.entries(METRIC).map(([k, m]) => `<button data-l="${k}" aria-pressed="false">${m.label}</button>`).join('')}
     </div>
@@ -199,6 +199,14 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
   viewport.append(panel);
   const dlg = resultsDialog(N);
   panel.querySelector('.noise-more').onclick = () => dlg.showModal();
+  const minBtn = panel.querySelector('.noise-min');
+  function minimise(on) {
+    panel.classList.toggle('min', on); minBtn.textContent = on ? '+' : '–';
+    minBtn.setAttribute('aria-expanded', String(!on)); minBtn.title = minBtn.ariaLabel = on ? 'Expand noise panel' : 'Minimise noise panel';
+    try { localStorage.setItem('noisePanelMin', on ? '1' : '0'); } catch (e) {}
+    setTimeout(() => place(), 0);
+  }
+  minBtn.onclick = () => minimise(!panel.classList.contains('min'));
   const body = panel.querySelector('.noise-body'), show = {paths: true, contours: true, names: true};
   let current = 'off';
   function legend(k) {
@@ -242,6 +250,7 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
     panel.style.maxHeight = Math.max(110, limit) + 'px';
   }
   new ResizeObserver(place).observe(viewport); panel.querySelector('details').addEventListener('toggle', place);
+  try { if (localStorage.getItem('noisePanelMin') === '1') minimise(true); } catch (e) {}
   return {set: l => panel.querySelector(`[data-l="${l}"]`)?.click(), root};
 }
 

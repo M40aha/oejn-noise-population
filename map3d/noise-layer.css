@@ -50,3 +50,13 @@ dialog.noise-dialog b{color:#10303b}
 .nd-types{display:grid;gap:2px}
 .nd-foot{font-size:11px!important;color:#6b8590!important;margin-top:18px!important}
 @media (max-width:640px){.nd-two{grid-template-columns:1fr}dialog.noise-dialog{padding:24px 18px}}
+.noise-actions{display:flex;gap:6px;align-items:center}
+.noise-min{width:26px;height:24px;border:1px solid #c9dbe3;background:#fff;color:#14323d;border-radius:6px;font:700 15px/1 inherit;cursor:pointer;padding:0}
+.noise-min:focus-visible{outline:2px solid #e34a33;outline-offset:2px}
+.noise-panel.min{width:auto;gap:0;padding:8px 10px;overflow:visible}
+.noise-panel.min .noise-seg,.noise-panel.min .noise-body{display:none}
+.noise-panel.min .noise-head small{display:none}
+.noise-panel.min .noise-head::before{content:"NOISE";font-size:9px;font-weight:700;letter-spacing:1.2px;color:#b30000;margin-right:4px}
+.noise-more{white-space:nowrap}
+.noise-panel .noise-min,.noise-panel .noise-min:hover{background:#fff!important;color:#14323d!important;border:1px solid #c9dbe3!important;box-shadow:none!important}
+.noise-head small{white-space:nowrap}
