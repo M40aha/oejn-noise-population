@@ -18,15 +18,37 @@ Part of the SANS research *OEJN Noise–Fuel–Capacity* (layers A5 aircraft-noi
 | **≥ 10 loud events per day** (LAmax ≥ 70 dB, N70) | **94,000** |
 | WHO 2018, indicative: highly annoyed / highly sleep-disturbed | 127,000 / 65,000 |
 
-- **Runways:** for the same aircraft type, the two runways expose similar numbers of residents. For example, an A320 exposes
-  about 52k residents to LAmax ≥ 65 dB per departure from 34C and about 54k from 34L.
-- **Why 34C dominates:** it carried 188 of the 208 departures, including almost all widebodies.
-
-| Lden, departures of 1 Oct (grey: residents) | Residents per departure, by runway and class |
-|---|---|
-| ![Lden](docs/noise/fig_lden.png) | ![Runways](docs/noise/fig_runway_exposure.png) |
+![Results panel of the 3D map](docs/img/results_panel.png)
 
 Full tables: [`docs/noise/results_2026-10-01.md`](docs/noise/results_2026-10-01.md).
+
+## Key findings
+
+1. **The noise falls on the city north of the airport.** All departures leave towards the north (runways 34). The loud zone
+   follows the extended centreline over Abhur and the northern coast.
+   - **Around 112k residents** are above the EU mapping threshold (Lden 55 dB), from a single day of departures alone.
+   - **Around 505k residents** are above the WHO guideline (Lden 45 dB).
+2. **Night flights carry a large share of the burden.**
+   - **60 of the 208 departures** flew between 23:00 and 07:00.
+   - With the +10 dB night weighting, **86k people** are above Lnight 50 dB.
+   - **65k residents** are indicatively highly sleep-disturbed.
+   - The timing of departures is therefore a noise lever, not only the routes.
+3. **The runway itself is not the issue; the traffic split is.**
+   - **For the same aircraft type, 34C and 34L expose similar numbers of residents per departure.** For example, an A320
+     exposes about 52k vs 54k residents at LAmax ≥ 65 dB.
+   - **34C carried 188 of the 208 departures**, including almost all widebodies. On its own, 34C puts 106k people above
+     Lden 55 dB; 34L puts 2.3k.
+   - **Swapping runways would change little.** Spreading the traffic, or changing which aircraft use which runway, would
+     change more.
+4. **The aircraft type matters most.**
+   - **Per departure,** about 3k residents hear ≥ 70 dB from an A320neo, against about 20k from an older A320. Large twins
+     (B77W, A333) reach 60–73k.
+   - **Caveat:** this ranking depends on the aircraft substitution in A5. Most engines are unknown, so the conservative Doc 29
+     variant is used. The ranking should be confirmed once engine types are resolved.
+5. **Per-procedure (SID) comparison is not yet possible.**
+   - Most A2 departures are unmatched or ambiguous to a SID, so this run supports **runway-level and aircraft-level**
+     conclusions only.
+   - This is the main input still needed for the noise–fuel–capacity trade-off.
 
 ## How the noise is computed
 
