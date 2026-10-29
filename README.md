@@ -108,7 +108,7 @@ $$L_{den} = 10\lg\left[\frac{T_0}{86400}\left(\sum_{day}10^{SEL/10} + \sum_{eve}
 
 Details: [`map3d/README.md`](map3d/README.md).
 
-![Live mode](docs/img/map3d_live.png)
+
 
 ## Limitations
 
@@ -119,21 +119,7 @@ Details: [`map3d/README.md`](map3d/README.md).
   - 25 flights have no aircraft type, so they are not modelled;
   - 11 use a proxy aircraft with Δ = 0, because certified levels are pending.
 
-## Run
 
-```bash
-pip install -r requirements.txt
-PYTHONPATH=src python -m pytest -q tests     # verify
-PYTHONPATH=src python -m noise.run           # run (needs the observed-traffic inputs in data/inputs/, not included)
-```
-
-| Folder | Contents |
-|---|---|
-| `src/noise/` | Doc 29 model |
-| `src/a5/`, `src/a6/` | aircraft-noise data, population |
-| `map3d/` | 3D map and its builder |
-| `data/` | outputs and QC |
-| `docs/` | methodology, results, [detailed notes](docs/README_detailed.md) |
 
 ## Data sources
 
