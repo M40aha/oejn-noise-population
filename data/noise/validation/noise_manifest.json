@@ -1,0 +1,75 @@
+{
+  "release_id": "noise-doc29e5-oejn-2026-10-01-v1",
+  "created_utc": "2026-10-29T21:42:29+00:00",
+  "inputs_sha256": {
+    "data/inputs/a2/a2_noise_flights.csv": "702d1a1d4a1ae6fb588387dd3ef77cf361749e64ba6d915319425998936a8592",
+    "data/inputs/a2/a2_noise_departures.parquet": "7cf7d1b25f294af92df1de965638520a31ef14f183dc1e58b4addc63e90d8c91",
+    "data/external/a1_external_airport_runways.csv": "5616423273731e387e1b019cd3e92939939f109a82c6d8a127eb5fb2a3e4d4e5",
+    "data/inputs/ext_metar_oejn.csv": "53ec6814261f64480efdf7262de0c58f564ca8397dad6f7e49ed1fe8f45062af",
+    "data/inputs/a3_aircraft_identity.csv": "d428b3aac02a7c6eb8c2b2262c9e3c7f6804acccce7c3ad814766595b99984bc"
+  },
+  "flights_total": 872,
+  "flights_in_scope": 241,
+  "flights_modelled": 208,
+  "status_counts": {
+    "OUT_OF_SCOPE_A2_STATUS": 631,
+    "OK": 197,
+    "NO_TYPE": 25,
+    "PROXY_ZERO_DELTA": 11,
+    "UNMAPPED": 5,
+    "PATH_FAILED": 3
+  },
+  "grid": {
+    "spacing_m": 250.0,
+    "half_width_m": 40000.0,
+    "n": 103041
+  },
+  "runtime_s": 1117.4,
+  "qc": [
+    {
+      "check": "inputs.metar",
+      "status": "PASS",
+      "detail": "METAR rows: 36"
+    },
+    {
+      "check": "inputs.aircraft_identity",
+      "status": "PASS",
+      "detail": "A3 identity rows: 339"
+    },
+    {
+      "check": "grid.interpolation_error",
+      "status": "PASS",
+      "detail": "flight OEJN-2026-10-01-70605e-1790848015838: bilinear grid->receptor vs exact at 2000 populated receptors with LAmax >= 50 dB: SEL |err| p50 0.00 / p95 0.06 dB; LAmax |err| p50 0.00 / p95 0.16 dB; mean signed SEL err +0.00 dB"
+    },
+    {
+      "check": "path.height_sources",
+      "status": "PASS",
+      "detail": "geometric-height share (median over flights) 0.99; median per-flight (geometric - baro) height difference +120 ft (p95 |.| 187 ft)"
+    },
+    {
+      "check": "path.flags",
+      "status": "WARNING",
+      "detail": "flights with path flags: 3; liftoff_clamped_min; liftoff_speed_from_first_climb_point; observation_gap_max_192s"
+    },
+    {
+      "check": "coverage.modelled",
+      "status": "WARNING",
+      "detail": "208 of 241 in-scope departures modelled; status counts {'OK': 197, 'NO_TYPE': 25, 'PROXY_ZERO_DELTA': 11, 'UNMAPPED': 5, 'PATH_FAILED': 3}"
+    },
+    {
+      "check": "weather.fallback",
+      "status": "PASS",
+      "detail": "0 modelled flights used the weather fallback"
+    },
+    {
+      "check": "grid.border_level",
+      "status": "PASS",
+      "detail": "max LAeq,24h on the grid border 37.4 dB (grid large enough when well below the lowest reported band)"
+    },
+    {
+      "check": "population.in_grid",
+      "status": "PASS",
+      "detail": "A6 population inside the noise grid: 3,801,835 on 215561 receptors"
+    }
+  ]
+}

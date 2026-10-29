@@ -39,12 +39,16 @@ class PathPolicy:
     max_speed_step_kt: float = 10.0     # node kept when speed changed by this much (=> segments within §3.6.5)
     max_heading_step_deg: float = 5.0   # node kept when the track turned by this much
     max_gap_s: float = 60.0             # an observation gap above this splits nothing but is flagged
-    liftoff_fit_max_z_ft: float = 1500.0
-    liftoff_fit_points: int = 6
-    liftoff_min_ft: float = 1500.0      # plausibility window for the lift-off distance from SOR
+    liftoff_fit_min_z_ft: float = 100.0   # lift-off fit uses clearly airborne points (ADS-B heights near the runway
+    liftoff_fit_max_z_ft: float = 1000.0  #   are +-25 ft quantised and often absent during the roll)
+    liftoff_window_s: float = 120.0       # ... within this time after the first point above liftoff_fit_min_z_ft
+    liftoff_min_ft: float = 1500.0        # plausibility window for the lift-off distance from SOR
+    liftoff_speed_kt: tuple = (100.0, 220.0)   # plausibility window for the lift-off ground speed
     height_smoothing_points: int = 5    # centred running median on heights (25-ft altitude quantisation)
     bank_smoothing_s: float = 20.0      # turn-rate smoothing window
     max_bank_deg: float = 35.0
+    max_liftoff_to_first_obs_ft: float = 16404.0   # 5 km: the observed climb must start near the lift-off point,
+    max_first_obs_height_ft: float = 3000.0        #   low enough that the inserted climb segment is credible
 
 
 # --------------------------------------------------------------------------------------------- step 1
@@ -67,40 +71,47 @@ def prepare_track(obs: pd.DataFrame, policy: PathPolicy) -> pd.DataFrame:
 
 # --------------------------------------------------------------------------------------------- step 2
 def find_liftoff(air: pd.DataFrame, sor_xy, axis_u, tora_ft: float, policy: PathPolicy) -> dict:
-    """Lift-off distance from SOR along the runway axis by a straight-line fit z(s) through the first airborne
-    points below liftoff_fit_max_z_ft (Doc 29 §3.2: fit straight segments to the data), clamped to
-    [liftoff_min_ft, TORA]. Returns s_lo_ft, V_lo_kt (ground speed interpolated at lift-off) and flags."""
+    """Lift-off distance from SOR along the runway axis: straight-line fit z(s) through the initial-climb points
+    between liftoff_fit_min_z_ft and liftoff_fit_max_z_ft (within liftoff_window_s of the first such point),
+    extrapolated to z = 0 (Doc 29 §3.2: fit straight segments to the data); clamped to [liftoff_min_ft, TORA].
+    Lift-off ground speed: V^2 linear in distance (constant acceleration) through the same points, at s_lo."""
     s = (air.x_ft - sor_xy[0]) * axis_u[0] + (air.y_ft - sor_xy[1]) * axis_u[1]
-    low = air[(air.z_ft <= policy.liftoff_fit_max_z_ft) & (s > 0)].head(policy.liftoff_fit_points)
     flags = []
-    s_lo = np.nan
-    if len(low) >= 2:
-        sl = s[low.index].to_numpy()
-        zl = low.z_ft.to_numpy()
+    climb = (air.z_ft >= policy.liftoff_fit_min_z_ft) & (s > 0)
+    s_lo, v_lo = np.nan, np.nan
+    fit = air.iloc[0:0]
+    if climb.any():
+        t0 = air.t_s[climb].iloc[0]
+        fit = air[climb & (air.z_ft <= policy.liftoff_fit_max_z_ft) & (air.t_s <= t0 + policy.liftoff_window_s)]
+    if len(fit) >= 3 and np.ptp(s[fit.index]) > 300:
+        sl, zl = s[fit.index].to_numpy(), fit.z_ft.to_numpy()
         b, a = np.polyfit(sl, zl, 1)
         if b > 0:
             s_lo = -a / b
+        g = fit.gs_kt.to_numpy()
+        k = np.isfinite(g)
+        if k.sum() >= 3:
+            bb, aa = np.polyfit(sl[k], g[k] ** 2, 1)
+            if np.isfinite(s_lo) and aa + bb * s_lo > 0:
+                v_lo = float(np.sqrt(aa + bb * s_lo))
     if not np.isfinite(s_lo):
         flags.append("liftoff_fit_failed")
-        s_lo = float(s[air.index[0]]) if len(air) else tora_ft
+        first_air = air[climb]
+        s_lo = float(s[first_air.index[0]]) if len(first_air) else tora_ft
     if s_lo < policy.liftoff_min_ft:
         flags.append("liftoff_clamped_min")
         s_lo = policy.liftoff_min_ft
     if s_lo > tora_ft:
         flags.append("liftoff_clamped_tora")
         s_lo = tora_ft
-    first = air.iloc[0] if len(air) else None
-    v_lo = float(low.gs_kt.iloc[0]) if len(low) else (float(first.gs_kt) if first is not None else np.nan)
-    if len(low) >= 2 and np.isfinite(low.gs_kt).sum() >= 2:   # extrapolate GS^2 linearly in distance to lift-off
-        sl = s[low.index].to_numpy()
-        g2 = low.gs_kt.to_numpy() ** 2
-        k = np.isfinite(g2)
-        if k.sum() >= 2 and np.ptp(sl[k]) > 0:
-            bb, aa = np.polyfit(sl[k], g2[k], 1)
-            v = aa + bb * s_lo
-            if v > 0 and abs(np.sqrt(v) - v_lo) < 40:
-                v_lo = float(np.sqrt(v))
-    return {"s_lo_ft": float(s_lo), "v_lo_kt": v_lo, "s_obs_ft": s.to_numpy(), "flags": flags}
+    vmin, vmax = policy.liftoff_speed_kt
+    if not (np.isfinite(v_lo) and vmin <= v_lo <= vmax):
+        ref = fit.gs_kt if len(fit) else air.gs_kt[climb]
+        v_obs = float(np.nanmin(ref)) if len(ref) and np.isfinite(ref).any() else np.nan
+        flags.append("liftoff_speed_from_first_climb_point")
+        v_lo = float(np.clip(v_obs, vmin, vmax)) if np.isfinite(v_obs) else 150.0
+    return {"s_lo_ft": float(s_lo), "v_lo_kt": float(v_lo), "s_obs_ft": s.to_numpy(), "flags": flags,
+            "n_fit_points": int(len(fit))}
 
 
 # --------------------------------------------------------------------------------------------- step 3
@@ -196,6 +207,7 @@ def build_path(obs: pd.DataFrame, sor_xy, axis_u, tora_ft: float, power_fn, cutb
     s_obs = lo["s_obs_ft"]
     # observed airborne points beyond lift-off (along the runway axis while still near the runway)
     beyond = air[(s_obs > lo["s_lo_ft"]) | (air.z_ft > 1500)].copy()
+    beyond["z_ft"] = beyond.z_ft.clip(lower=SOURCE_MIN_Z_FT)     # height quantisation noise just after lift-off
     flags = list(lo["flags"])
     if len(beyond) < 2:
         raise ValueError("no airborne observations beyond the lift-off point")
@@ -208,6 +220,10 @@ def build_path(obs: pd.DataFrame, sor_xy, axis_u, tora_ft: float, power_fn, cutb
     roll = ground_roll_nodes(sor_xy, axis_u, lo["s_lo_ft"], lo["v_lo_kt"])
     lo_node = roll.iloc[-1]
     first = th.iloc[0]
+    gap_ft = float(np.hypot(first.x_ft - lo_node.x_ft, first.y_ft - lo_node.y_ft))
+    if gap_ft > policy.max_liftoff_to_first_obs_ft or first.z_ft > policy.max_first_obs_height_ft:
+        raise ValueError(f"track not observed near the runway: first airborne point {gap_ft * FT / 1000:.1f} km from the "
+                         f"lift-off point at {first.z_ft:.0f} ft (departure not reconstructable)")
     ic = initial_climb_nodes({"x_ft": lo_node.x_ft, "y_ft": lo_node.y_ft, "V_kt": lo_node.V_kt},
                              {"x_ft": first.x_ft, "y_ft": first.y_ft, "z_ft": first.z_ft, "V_kt": first.V_kt})
     # time stamps for roll / inserted nodes (constant acceleration on the roll; linear in the climb segment)
@@ -249,7 +265,7 @@ def build_path(obs: pd.DataFrame, sor_xy, axis_u, tora_ft: float, power_fn, cutb
     nodes["bank_deg"] = bank_angle(nodes, beyond, policy)
     nodes.loc[nodes.kind == "roll", "bank_deg"] = 0.0
     nodes["ground_roll"] = np.where(nodes.kind == "roll", "D", "")
-    info = {"s_lo_ft": lo["s_lo_ft"], "v_lo_kt": lo["v_lo_kt"], "n_roll_segments": int(roll.roll_n.iloc[0]),
+    info = {"s_lo_ft": lo["s_lo_ft"], "v_lo_kt": lo["v_lo_kt"], "n_liftoff_fit_points": lo["n_fit_points"], "n_roll_segments": int(roll.roll_n.iloc[0]),
             "n_inserted_climb_nodes": int(len(ic)), "n_observed_airborne": int(len(beyond)),
             "n_nodes": int(len(nodes)), "p_init": p_init, "p_to": p_to, "flags": flags,
             "max_abs_bank_deg": float(np.abs(nodes.bank_deg).max())}

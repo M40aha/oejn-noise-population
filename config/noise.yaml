@@ -7,6 +7,7 @@ inputs:                          # relative to the repository root; each can be 
   a2_dir: "data/inputs/a2"                         # NOISE_A2_DIR: a2_noise_departures.parquet, a2_noise_flights.csv, a2_noise_manifest.json
   metar_csv: "data/inputs/ext_metar_oejn.csv"      # NOISE_METAR_CSV (scripts/colab_external_data.py)
   aircraft_identity_csv: "data/inputs/a3_aircraft_identity.csv"   # NOISE_A3_CSV (optional; without it the Doc 29 unknown-engine rule applies)
+  aircraft_identity_fill_csv: "data/inputs/a3_aircraft_identity_fill.csv"   # NOISE_A3_FILL_CSV (optional; scripts/colab_identity_fill.py, used only where the primary file has no type)
   runways_csv: "data/external/a1_external_airport_runways.csv"    # A1 handoff (AIP AIRAC AMDT 10/26)
   a5_processed: "data/a5/processed"
   a6_receptors: "data/a6/processed/a6_receptors.parquet"
@@ -28,12 +29,15 @@ flight_path:                      # src/noise/flightpath.py PathPolicy
   min_seg_ft_high: 3000.0
   max_speed_step_kt: 10.0
   max_heading_step_deg: 5.0
-  liftoff_fit_max_z_ft: 1500.0
-  liftoff_fit_points: 6
+  liftoff_fit_min_z_ft: 100.0
+  liftoff_fit_max_z_ft: 1000.0
+  liftoff_window_s: 120.0
   liftoff_min_ft: 1500.0
   height_smoothing_points: 5
   bank_smoothing_s: 20.0
   max_bank_deg: 35.0
+  max_liftoff_to_first_obs_ft: 16404.0   # 5 km; otherwise the departure is not observed near the runway -> PATH_FAILED
+  max_first_obs_height_ft: 3000.0
 
 power:
   takeoff_rating: "MaxTakeoff"    # full take-off thrust: Doc 29 Vol 2 §3.5 - realistic where air temperatures are high

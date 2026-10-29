@@ -7,7 +7,7 @@ This repository holds the two preprocessed layers (A5, A6) and the **Doc 29 nois
 |---|---|---|---|
 | **A5 — aircraft noise data** | For an observed aircraft: which ANP aircraft, which noise curves (NPD), which correction (Δ dB), and how confident are we? | `a5-anp2.3-doc29e5-v1` | ✅ 0 errors · 106 checks passed · Doc 29 Vol 3 reproduced to 1.3 × 10⁻¹³ dB |
 | **A6 — population exposure** | Where do people live, and how many, at 100 m resolution? | `a6-worldpop-r2025a-2026-v1` | ✅ 0 errors · 23 checks passed · population conserved exactly |
-| **Noise model** (`src/noise/`) | SEL / LAmax per observed departure, LAeq,24h, Lden, Lnight, N60/65/70, and people exposed | `noise-doc29e5-oejn-2026-10-01-v1` | ✅ code validated: Vol 3 B-2 (3,516 segments) ≤ 1.4 × 10⁻³ dB · B-1 ≤ 4.9 × 10⁻³ dB · D-2 thrust 119/119 · Table D-4 < 0.1 dB · end-to-end observed-track test ≤ 0.05 dB. ⏳ waiting for the 1-Oct A2 extract, METAR and A3 identity files |
+| **Noise model** (`src/noise/`) | SEL / LAmax per observed departure, LAeq,24h, Lden, Lnight, N60/65/70, and people exposed | `noise-doc29e5-oejn-2026-10-01-v1` | ✅ code validated: Vol 3 B-2 (3,516 segments) ≤ 1.4 × 10⁻³ dB · B-1 ≤ 4.9 × 10⁻³ dB · D-2 thrust 119/119 · Table D-4 < 0.1 dB · end-to-end observed-track test ≤ 0.05 dB. ✅ **run on 1 Oct 2026**: 208 of 241 departures modelled → [results](docs/noise/results_2026-10-01.md) |
 
 Tests: **50 / 50 pass** (`tests/`: A5 21, A6 12, noise 17). Independent re-implementation check for A5: **15 / 15** (`scripts/verify_a5_independent.py`).
 

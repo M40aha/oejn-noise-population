@@ -31,7 +31,8 @@ from .site import FT, Site, prepare_observations
 from .weather import load_metar, met_for
 
 ROOT = Path(__file__).resolve().parents[2]
-ENV = {"a2_dir": "NOISE_A2_DIR", "metar_csv": "NOISE_METAR_CSV", "aircraft_identity_csv": "NOISE_A3_CSV"}
+ENV = {"a2_dir": "NOISE_A2_DIR", "metar_csv": "NOISE_METAR_CSV", "aircraft_identity_csv": "NOISE_A3_CSV",
+       "aircraft_identity_fill_csv": "NOISE_A3_FILL_CSV"}
 
 
 def sha(p: Path) -> str:
@@ -221,12 +222,20 @@ def main(cfg_file: Path = ROOT / "config" / "noise.yaml", out_root: Path | None 
     metar = load_metar(metar_p) if metar_p.exists() else None
     ident_p = path_of(cfg, "aircraft_identity_csv")
     ident = pd.read_csv(ident_p, dtype=str) if ident_p.exists() else None
+    fill_p = path_of(cfg, "aircraft_identity_fill_csv") if "aircraft_identity_fill_csv" in cfg["inputs"] else None
+    if ident is not None and fill_p is not None and fill_p.exists():
+        fill = pd.read_csv(fill_p, dtype=str)
+        fill = fill[fill.icao_type.fillna("").str.strip() != ""]
+        has = set(ident[ident.icao_type.fillna("").str.strip() != ""].icao24.str.lower())
+        fill = fill[~fill.icao24.str.lower().isin(has)]
+        ident = pd.concat([ident[~ident.icao24.str.lower().isin(set(fill.icao24.str.lower()))], fill], ignore_index=True)
+        qc.append(("inputs.aircraft_identity_fill", "PASS", f"types added from {fill_p.name}: {len(fill)} aircraft"))
     rwys = pd.read_csv(path_of(cfg, "runways_csv"))
     site = Site(rwys, cfg["aerodrome"]["arp_lat"], cfg["aerodrome"]["arp_lon"])
     t = load_a5(cfg)
     inputs = {str(p.relative_to(ROOT) if p.is_relative_to(ROOT) else p): sha(p) for p in
               [a2 / "a2_noise_flights.csv", a2 / "a2_noise_departures.parquet", path_of(cfg, "runways_csv")]
-              + [p for p in (metar_p, ident_p) if p.exists()]}
+              + [p for p in (metar_p, ident_p, fill_p) if p is not None and p.exists()]}
     qc.append(("inputs.metar", "PASS" if metar is not None else "WARNING",
                f"METAR rows: {len(metar)}" if metar is not None else "no METAR file: weather fallback for every flight"))
     qc.append(("inputs.aircraft_identity", "PASS" if ident is not None else "WARNING",

@@ -1,0 +1,10 @@
+check,status,detail
+inputs.metar,PASS,METAR rows: 36
+inputs.aircraft_identity,PASS,A3 identity rows: 339
+grid.interpolation_error,PASS,flight OEJN-2026-10-01-70605e-1790848015838: bilinear grid->receptor vs exact at 2000 populated receptors with LAmax >= 50 dB: SEL |err| p50 0.00 / p95 0.06 dB; LAmax |err| p50 0.00 / p95 0.16 dB; mean signed SEL err +0.00 dB
+path.height_sources,PASS,geometric-height share (median over flights) 0.99; median per-flight (geometric - baro) height difference +120 ft (p95 |.| 187 ft)
+path.flags,WARNING,flights with path flags: 3; liftoff_clamped_min; liftoff_speed_from_first_climb_point; observation_gap_max_192s
+coverage.modelled,WARNING,"208 of 241 in-scope departures modelled; status counts {'OK': 197, 'NO_TYPE': 25, 'PROXY_ZERO_DELTA': 11, 'UNMAPPED': 5, 'PATH_FAILED': 3}"
+weather.fallback,PASS,0 modelled flights used the weather fallback
+grid.border_level,PASS,"max LAeq,24h on the grid border 37.4 dB (grid large enough when well below the lowest reported band)"
+population.in_grid,PASS,"A6 population inside the noise grid: 3,801,835 on 215561 receptors"

@@ -1,5 +1,7 @@
 # Noise model — methodology (ECAC Doc 29, 5th Edition, 2026)
 
+Results of the 1-Oct run: [results_2026-10-01.md](results_2026-10-01.md)
+
 Release `noise-doc29e5-oejn-2026-10-01-v1` · code `src/noise/` · configuration `config/noise.yaml` · tests `tests/test_noise.py`
 
 **Scope.** Single-event and cumulative A-weighted noise of the *observed* jet departures from OEJN on 1 October 2026 (UTC day,
@@ -37,9 +39,14 @@ This is what is done; no procedure profile is imposed on the observed tracks.
 - **Reference plane:** the departure-runway threshold elevation. Receptors lie on that plane. This is Doc 29's flat-terrain
   default, with the optional topography adjustment not applied. Jeddah's coastal plain is flat near the airport; the ground rises
   towards the eastern escarpment (>25 km).
-- **Lift-off:** a straight-line fit of height against distance from the start of roll (SOR), through the first ≤ 6 airborne
-  points below 1,500 ft, is extrapolated back to z = 0. The result is clamped to [1,500 ft, TORA] (flagged). The lift-off
-  speed comes from the same points (V² linear in distance).
+- **Lift-off:** a straight-line fit of height against distance from the start of roll (SOR), through the climb points in
+  the fit window below, is extrapolated back to z = 0. The result is clamped to [1,500 ft, TORA] (flagged). The lift-off
+  speed comes from the same points (V² linear in distance), with a plausibility window of 100–220 kt.
+- **Rejected paths:** a departure whose first airborne observation lies more than 5 km from the lift-off point or above 3,000 ft
+  (the take-off was not observed near the runway) is not modelled (`PATH_FAILED`, reason recorded); so is a track with fewer
+  than 3 airborne points.
+- **Lift-off (fit window):** heights between 100 and 1,000 ft within 120 s of the first point above 100 ft. ADS-B heights near the
+  runway are 25-ft quantised and the roll itself is often not reported, so points below 100 ft are not used.
 - **Ground roll:** from the runway threshold (SOR = threshold, i.e. full-length take-off; intersection departures are not
   identified) to lift-off. It is split into n = int(1 + V_TO/10) segments (V_TO in m/s) of length s_TO(2k−1)/n², with speed
   steps V_TO/n and constant thrust steps (Eq. 3-3e). The source is 1 m above the runway.
