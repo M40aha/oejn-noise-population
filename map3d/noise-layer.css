@@ -1,0 +1,13 @@
+.noise-panel{position:absolute;top:175px;right:22px;width:240px;background:#ffffffe8;border:1px solid #d3e2e9;border-radius:12px;padding:12px 13px;display:grid;gap:9px;backdrop-filter:blur(12px);z-index:5;font-size:10px;color:#204552;box-shadow:0 6px 20px #153f4b18}
+.noise-panel>small{letter-spacing:1.2px;color:#6a2a9e;font-size:9px;font-weight:600}
+.noise-seg{display:flex;border:1px solid #c9dbe3;border-radius:7px;overflow:hidden}
+.noise-seg button{flex:1;background:transparent;border:0;color:#204552;padding:7px 0;font:600 11px inherit;cursor:pointer}
+.noise-seg button[aria-pressed="true"]{background:#6a2a9e;color:#fff}
+.noise-seg button:focus-visible{outline:2px solid #6a2a9e;outline-offset:-2px}
+.noise-legend{display:grid;gap:5px;line-height:1.35}
+.noise-legend b{font-size:11px;color:#14323d}
+.noise-legend span{color:#5f7c88}
+.noise-sw{display:flex;height:9px;border-radius:2px;overflow:hidden}.noise-sw span{flex:1}
+.noise-ticks{display:flex;justify-content:space-between}
+.noise-ticks span{color:#204552}
+@media (max-width:760px){.noise-panel{top:auto;bottom:420px;right:12px;width:200px}}

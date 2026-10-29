@@ -1,0 +1,30 @@
+{
+  "copied_from": "M-AlGhazali/Research-and-Innovation-department-SANS-project, map-2 (read only; not modified)",
+  "files_sha256": {
+    "map-2/index.html": "09f27e8954128092a97396670e9af6979c87b9138022751029b0c6fdde7ab6df",
+    "map-2/studio.js": "15e135f37170c37705f032afcc4bfd9456b460e614327e6a1623c3f449f68f21",
+    "map-2/studio.css": "de36768a46029c641d4cf41b5ae51eaf0abcf7281431636ef4031b0a74520b4c",
+    "map-2/flight-model.mjs": "bfd6aa0733eceacb7217f118cb4d8c3c9025dc6e8b27cea4cc9953ca2a313ee6",
+    "map-2/observed-model.mjs": "e5ca994e924360a53bf6a4f0bf764eb3551020a0366b92176444e49601666485",
+    "map-2/observed-layer.mjs": "1fb31bc8600b68ccb9e9adeb109acfc3e52352af62d1b8a1948e2ed1d8c0e6cc",
+    "map-2/observed.css": "3208f3892ceca4eb7d24ab456ca4a6e9cdae189e639a7dc42a09f89794d5c37d",
+    "map-2/data.json": "057ce87eb194d30eea19ccf9965ef4944a78758c251bd0330d553d1275859a09",
+    "map-2/sans-logo.svg": "6991e94c87964c368915a8d9a27cad3e75586db182ae53e1fe6a810b5c166b0a",
+    "map-2/sans-logo-light.svg": "fbf52eae6b45def18e9604b27845bc62224966e6d5feaaca2992dc3bafdbe485",
+    "map-2/vendor/three.core.js": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20",
+    "map-2/vendor/three.module.js": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a",
+    "map-2/vendor/OrbitControls.js": "b97879c748170baadeb3fb84cea1ffdf4674e283dc06042f34e2acb95a76042c",
+    "map-2/vendor/LICENSE.txt": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601"
+  },
+  "patched": [
+    "studio.js (noise-layer mount, 2 lines)",
+    "index.html (stylesheet link, title, header pill, one sentence in Sources)"
+  ],
+  "added": [
+    "noise-layer.mjs",
+    "noise-layer.css",
+    "noise-layer.json",
+    "OEJN_Map3D_Noise.html"
+  ],
+  "noise_release": "noise-doc29e5-oejn-2026-10-01-v1"
+}
