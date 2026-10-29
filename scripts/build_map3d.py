@@ -81,9 +81,26 @@ def noise_json() -> dict:
            "pop": {"lden": [pick("Lden", f">={t} (cumulative)") for t in (45, 50, 55, 60, 65, 70)],
                    "lnight": [pick("Lnight", f">={t} (cumulative)") for t in (40, 45, 50, 55, 60, 65)],
                    "n70": [pick("N70", f">={t} events") for t in (1, 5, 10, 20, 50, 100)]},
+           "live": live_aircraft("A320-211"),
            "note": "Departures only, 1 Oct 2026. Derived from Wingbits evaluation data via A2: local use only."}
     (OUT / "noise-layer.json").write_text(json.dumps(out, separators=(",", ":")))
     return out
+
+
+def live_aircraft(acft: str) -> dict:
+    """NPD LAmax (departure) and jet thrust coefficients of one typical aircraft, for the illustrative live footprint."""
+    import pandas as pd
+    P = ROOT / "data" / "a5" / "processed"
+    ac = pd.read_parquet(P / "anp_aircraft.parquet").set_index("acft_id").loc[acft]
+    npd = pd.read_parquet(P / "anp_npd_long.parquet")
+    t = npd[(npd.npd_id == ac.npd_id) & (npd.noise_metric == "LAmax") & (npd.op_mode == "D")]
+    piv = t.pivot(index="power_setting", columns="distance_ft", values="level_db").sort_index().sort_index(axis=1)
+    jc = pd.read_parquet(P / "anp_jet_coefficients.parquet")
+    jc = jc[(jc.acft_id == acft) & jc.thrust_rating.isin(["MaxTakeoff", "MaxClimb", "MaxTkoffHiTemp", "MaxClimbHiTemp"])]
+    return {"acft": acft, "description": ac.description, "npd_id": ac.npd_id, "installation": ac.lateral_directivity,
+            "powers": [float(v) for v in piv.index], "dists_ft": [float(v) for v in piv.columns],
+            "lamax": [[round(float(v), 2) for v in row] for row in piv.to_numpy()],
+            "jet": {r.thrust_rating: [float(r.E), float(r.F), float(r.Ga), float(r.Gb), float(r.H)] for r in jc.itertuples()}}
 
 
 def standalone():

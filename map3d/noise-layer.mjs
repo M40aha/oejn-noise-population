@@ -13,6 +13,8 @@ const METRIC = {
     bands: ['Above WHO night guideline (40)', 'Sleep disturbance for some', 'EU night threshold (50)', 'High sleep disturbance', 'Severe', 'Extreme']},
   n70: {label: 'Loud events', title: 'Departures above 70 dB', unit: 'events', stops: [1, 5, 10, 20, 50, 100, 150], fade: 0.5, log: true,
     bands: ['Occasional', 'Several a day', 'One every 1–2 hours', 'Frequent', 'Very frequent', 'Almost every departure']},
+  live: {label: 'Live ▶', title: 'Live: noise under the moving aircraft', unit: 'dB', stops: [60, 65, 70, 75, 80, 85, 90], fade: 55,
+    bands: ['Clearly audible outdoors', 'Conversation harder outdoors', 'Interrupts conversation indoors (windows open)', 'Very loud', 'Severe', 'Extreme']},
 };
 const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
 const RGB = RAMP.map(hex);
@@ -117,6 +119,69 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
     requestAnimationFrame(scaleLabels);
   })();
 
+  // ---------- live footprint: follows the Map 2 playback aircraft ----------
+  // Instantaneous A-weighted level on the ground from the aircraft's current position (NPD LAmax of a typical A320
+  // at take-off / climb thrust, Doc 29 lateral attenuation), plus a trail = highest level reached so far this run.
+  const L = N.live, n = N.n, cell = N.cell_km;
+  const lcv = document.createElement('canvas'); lcv.width = n; lcv.height = n;
+  const lctx = lcv.getContext('2d'), limg = lctx.createImageData(n, n), trail = new Float32Array(n * n), now = new Float32Array(n * n);
+  const ltex = new THREE.CanvasTexture(lcv); ltex.colorSpace = THREE.SRGBColorSpace; ltex.magFilter = THREE.LinearFilter;
+  const lmat = new THREE.MeshBasicMaterial({transparent: true, depthWrite: false, map: ltex});
+  const lplane = new THREE.Mesh(plane.geometry, lmat); lplane.rotation.x = -Math.PI / 2; lplane.position.set(cx, 0.032, cz); lplane.renderOrder = 6; lplane.visible = false; root.add(lplane);
+  const lx = L.dists_ft.map(Math.log10);
+  function npd(P, dft) {
+    const d = Math.log10(Math.max(dft, 98.4)), p = Math.max(P, 1), W = L.powers, X = lx;
+    let j = X.length - 2; for (let k = 0; k < X.length - 1; k++) if (d < X[k + 1]) { j = k; break; }
+    let i = W.length - 2; for (let k = 0; k < W.length - 1; k++) if (p < W[k + 1]) { i = k; break; }
+    const at = r => L.lamax[r][j] + (L.lamax[r][j + 1] - L.lamax[r][j]) * (d - X[j]) / (X[j + 1] - X[j]);
+    const a = at(i), b = at(i + 1); return a + (b - a) * (p - W[i]) / (W[i + 1] - W[i]);
+  }
+  function thrust(altFt, casKt) {
+    const r = altFt < 1500 ? 'MaxTakeoff' : 'MaxClimb', hi = altFt < 1500 ? 'MaxTkoffHiTemp' : 'MaxClimbHiTemp', T = 30;
+    const f = c => c ? c[0] + c[1] * casKt + c[2] * altFt + c[3] * altFt * altFt + c[4] * T : Infinity;
+    return Math.min(f(L.jet[r]), f(L.jet[hi]));
+  }
+  const lateral = (betaDeg, lM) => (lM <= 914 ? 1.089 * (1 - Math.exp(-0.00274 * lM)) : 1) * (betaDeg <= 50 ? 1.137 - 0.0229 * betaDeg + 9.72 * Math.exp(-0.142 * betaDeg) : 0);
+  const R = 14, Rc = Math.round(R / cell), Mlive = METRIC.live;
+  let boxes = [], lastElapsed = {}, peak = 0;
+  const drops = [0, 1, 2].map(() => { const g = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array(6), 3));
+    const ln = new THREE.Line(g, new THREE.LineDashedMaterial({color: '#14323d', dashSize: .08, gapSize: .06, transparent: true, opacity: .8})); ln.visible = false; ln.frustumCulled = false; root.add(ln); return ln; });
+  function paint(i0, i1, j0, j1) {
+    for (let j = Math.max(0, j0); j <= Math.min(n - 1, j1); j++) for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) {
+      const q = j * n + i, p = ((n - 1 - j) * n + i) * 4, cur = colorAt(now[q], Mlive), tr = colorAt(trail[q], Mlive);
+      const c = cur || tr; if (!c) { limg.data[p + 3] = 0; continue; }
+      limg.data[p] = c[0]; limg.data[p + 1] = c[1]; limg.data[p + 2] = c[2]; limg.data[p + 3] = Math.round((cur ? Math.min(1, c[3] + 0.25) : c[3] * 0.45) * 255);
+    }
+  }
+  function liveStep() {
+    if (current === 'live') {
+      const st = window.map2?.getState?.() || {}, v = vertical(), newBoxes = [];
+      for (const q of boxes) for (let j = q[2]; j <= q[3]; j++) for (let i = q[0]; i <= q[1]; i++) if (i >= 0 && j >= 0 && i < n && j < n) now[j * n + i] = 0;
+      peak = 0; let di = 0; drops.forEach(d => d.visible = false);
+      for (const [id, a] of Object.entries(st)) {
+        if (!a.procedure) continue;
+        if ((lastElapsed[id] ?? 0) > a.elapsed + 0.5) trail.fill(0);           // restart or new loop: clear the trail
+        lastElapsed[id] = a.elapsed;
+        if (!a.elapsed) continue;
+        const [sx, sy, sz] = a.position, xa = sx - dx, ya = -sz - dy, alt = Math.max(0, sy / (0.0003048 * v)), P = thrust(alt, alt < 3000 ? 160 : 250);
+        const ci = Math.round((xa - N.x0) / cell), cj = Math.round((ya - N.y0) / cell), hkm = alt * 0.0003048;
+        if (di < drops.length) { const dl = drops[di++], ar = dl.geometry.attributes.position.array; ar.set([sx, sy, sz, sx, 0.035, sz]); dl.geometry.attributes.position.needsUpdate = true; dl.computeLineDistances(); dl.visible = true; }
+        for (let j = cj - Rc; j <= cj + Rc; j++) for (let i = ci - Rc; i <= ci + Rc; i++) {
+          if (i < 0 || j < 0 || i >= n || j >= n) continue;
+          const gx = N.x0 + i * cell - xa, gy = N.y0 + j * cell - ya, lh = Math.hypot(gx, gy); if (lh > R) continue;
+          const d = Math.hypot(lh, hkm), lev = npd(P, d * 3280.84) - lateral(Math.atan2(hkm, Math.max(lh, 1e-3)) * 180 / Math.PI, lh * 1000);
+          const q = j * n + i; now[q] = Math.max(now[q], lev); trail[q] = Math.max(trail[q], lev); peak = Math.max(peak, lev);
+        }
+        newBoxes.push([ci - Rc, ci + Rc, cj - Rc, cj + Rc]);
+      }
+      for (const q of [...boxes, ...newBoxes]) paint(...q);
+      boxes = newBoxes; lctx.putImageData(limg, 0, 0); ltex.needsUpdate = true;
+      const out = panel.querySelector('.noise-live'); if (out) out.textContent = newBoxes.length ? `Under the aircraft now: up to ${Math.round(peak)} dB` : 'Press ▶ Play to fly a departure';
+    }
+    requestAnimationFrame(liveStep);
+  }
+  requestAnimationFrame(liveStep);
+
   // ---------- panel ----------
   const panel = document.createElement('div');
   panel.className = 'noise-panel';
@@ -127,6 +192,7 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
     <div class="noise-body" hidden>
       <div class="noise-toggles"><label><input type="checkbox" data-t="paths" checked> Paths</label><label><input type="checkbox" data-t="contours" checked> Contours</label><label><input type="checkbox" data-t="names" checked> Names</label></div>
       <b class="noise-title"></b><canvas class="noise-grad" width="230" height="10"></canvas><div class="noise-ticks"></div>
+      <b class="noise-live" hidden></b>
       <details><summary>What the colours mean · residents</summary><div class="noise-bands"></div></details>
       <span class="noise-foot">${N.modelled} observed jet departures · ECAC Doc 29 · departures only, one day · Wingbits evaluation data: do not publish</span>
     </div>`;
@@ -141,21 +207,33 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
     const g = panel.querySelector('.noise-grad').getContext('2d');
     for (let x = 0; x < 230; x++) { const v = m.log ? Math.exp(Math.log(m.stops[0]) + (Math.log(m.stops[5]) - Math.log(m.stops[0])) * x / 229) : m.stops[0] + (m.stops[5] - m.stops[0]) * x / 229; const c = colorAt(v, m); g.fillStyle = `rgb(${c.slice(0, 3).map(Math.round).join(',')})`; g.fillRect(x, 0, 1, 10); }
     panel.querySelector('.noise-ticks').innerHTML = m.stops.slice(0, 6).map(s => `<span>${s}</span>`).join('') + `<span>${m.unit}</span>`;
-    const cum = N.pop[k], band = cum.map((v, i) => v - (cum[i + 1] || 0));
-    panel.querySelector('.noise-bands').innerHTML = m.bands.map((b, i) => `<div><i style="background:${RAMP[i]}"></i><span>${i === 5 ? '≥ ' + m.stops[i] : m.stops[i] + '–' + m.stops[i + 1]} · ${b}</span><em>${fmtK(band[i])}</em></div>`).reverse().join('');
+    const cum = N.pop[k] || [], band = cum.map((v, i) => v - (cum[i + 1] || 0));
+    panel.querySelector('.noise-bands').innerHTML = m.bands.map((b, i) => `<div><i style="background:${RAMP[i]}"></i><span>${i === 5 ? '≥ ' + m.stops[i] : m.stops[i] + '–' + m.stops[i + 1]} · ${b}</span><em>${cum.length ? fmtK(band[i]) : ''}</em></div>`).reverse().join('');
+    panel.querySelector('details summary').textContent = k === 'live' ? 'What the colours mean' : 'What the colours mean · residents';
+    panel.querySelector('.noise-live').hidden = k !== 'live';
+    panel.querySelector('.noise-foot').textContent = k === 'live'
+      ? `Illustrative: follows Map 2's concept playback on the published procedure (demo heights), using a typical ${L.acft} (${L.npd_id} noise curve) at full take-off / climb thrust. Bright = now, faded = loudest so far.`
+      : `${N.modelled} observed jet departures · ECAC Doc 29 · departures only, one day · Wingbits evaluation data: do not publish`;
   }
   function apply() {
     root.visible = current !== 'off'; body.hidden = current === 'off';
     if (current !== 'off') {
-      mat.map = surface(current); mat.needsUpdate = true;
+      const liveMode = current === 'live';
+      plane.visible = !liveMode; lplane.visible = liveMode;
       for (const g of Object.values(contours)) g.visible = false;
-      contourGroup(current).visible = show.contours;
+      if (!liveMode) { mat.map = surface(current); mat.needsUpdate = true; contourGroup(current).visible = show.contours; }
       paths.visible = show.paths; names.visible = show.names;
       legend(current);
     }
     place();
   }
-  panel.querySelectorAll('[data-l]').forEach(b => b.onclick = () => { current = b.dataset.l; panel.querySelectorAll('[data-l]').forEach(x => x.setAttribute('aria-pressed', x === b)); apply(); });
+  panel.querySelectorAll('[data-l]').forEach(b => b.onclick = () => {
+    const was = current; current = b.dataset.l; panel.querySelectorAll('[data-l]').forEach(x => x.setAttribute('aria-pressed', x === b));
+    const pc = panel.querySelector('[data-t="paths"]');                  // typical-path tubes clutter the live view: off by default there
+    if (current === 'live' && was !== 'live') { show.paths = false; pc.checked = false; }
+    if (was === 'live' && current !== 'live') { show.paths = true; pc.checked = true; }
+    apply();
+  });
   panel.querySelectorAll('[data-t]').forEach(c => c.onchange = () => { show[c.dataset.t] = c.checked; apply(); });
   // never overlap the flight card: the panel may only use the space above it (scrolls inside if needed)
   function place() {
