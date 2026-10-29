@@ -4,12 +4,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: an aeronautical-chart sheet — one large plate (map) with a margin rail of route data,
-   then numbered "panels" like the tabular pages of an AIP. Magenta = RNAV routes, ochre = population. */
 :root{
   --bg:#EDF1F2; --sheet:#F8FAFA; --ink:#14232B; --muted:#5A6A72; --rule:#C7D1D5;
-  --mag:#B4236E; --teal:#0B7782; --warn:#A35B00; --ok:#2F7D4A;
-  --p0:#F2E4BF; --p1:#E7B95A; --p2:#C9741F; --p3:#7E3410; --p4:#3B1606;
+  --c34c:#B4236E; --c34l:#0B7782;
   --n0:#E9DDF5; --n1:#C7A3E6; --n2:#9B5CCB; --n3:#6A2A9E; --n4:#3A0E5E; --trk:#0B7782;
   --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -17,582 +14,274 @@
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
-  --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
-  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6;
+  --c34c:#F35FA9; --c34l:#3CC6D1;
   --n0:#2E1A45; --n1:#5B2F8C; --n2:#9254C9; --n3:#C99BF0; --n4:#F1E2FF; --trk:#3CC6D1; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0B1418; --sheet:#101C22; --ink:#E4ECEE; --muted:#8EA2A9; --rule:#22343C;
-  --mag:#F35FA9; --teal:#3CC6D1; --warn:#F0A445; --ok:#5CC883;
-  --p0:#33240F; --p1:#7A4A14; --p2:#C47A22; --p3:#F0B04A; --p4:#FFE6A6;
+  --c34c:#F35FA9; --c34l:#3CC6D1;
   --n0:#2E1A45; --n1:#5B2F8C; --n2:#9254C9; --n3:#C99BF0; --n4:#F1E2FF; --trk:#3CC6D1; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
-.wrap{max-width:1240px;margin:0 auto;display:grid;gap:28px}
-h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:.01em;line-height:1.05;margin:0;text-wrap:balance}
-h1{font-size:clamp(2.6rem,6vw,4.4rem);font-weight:700}
-h2{font-size:1.7rem}
-h3{font-size:1.15rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600}
-p{margin:0;max-width:68ch}
-.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:28px 48px}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:28px}
+h1,h2{font-family:var(--display);font-weight:600;line-height:1.05;margin:0;text-wrap:balance}
+h1{font-size:clamp(2.4rem,6vw,4rem);font-weight:700}
+h2{font-size:1.6rem}
+p{margin:0;max-width:70ch}
 .muted{color:var(--muted)}
-header{display:grid;gap:14px;border-bottom:2px solid var(--ink);padding-bottom:18px}
-.eyebrow{font:500 .78rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mag)}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{font:500 .8rem/1 var(--mono);padding:7px 10px;border:1px solid var(--rule);border-radius:3px;background:var(--sheet);display:flex;gap:7px;align-items:center}
-.chip i{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block}
-.chip.warn i{background:var(--warn)}
-.plate{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0;border:1px solid var(--ink);background:var(--sheet)}
-.mapbox{position:relative;min-width:0;border-right:1px solid var(--ink)}
-canvas#map{display:block;width:100%;height:auto;aspect-ratio:1/1.08;cursor:crosshair}
-.legend{position:absolute;left:12px;bottom:12px;background:var(--sheet);border:1px solid var(--rule);padding:8px 10px;font:500 .72rem/1.3 var(--mono);display:grid;gap:6px}
-.ramp{height:8px;width:150px;border:1px solid var(--rule)}
-.layers{position:absolute;left:12px;top:12px;background:var(--sheet)}
-.layers button{padding:7px 10px}
-.swatches{display:flex;width:180px;height:9px;border:1px solid var(--rule)}
-.swatches span{flex:1}
-.ticks{display:flex;justify-content:space-between;width:180px}
-.bignum{font:700 clamp(2rem,4vw,2.8rem)/1 var(--display)}
-.lede{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
-.lede div{border-top:3px solid var(--n2);padding-top:8px;display:grid;gap:4px}
-.lede span{font-size:.85rem;color:var(--muted)}
-.lede span.bignum{font:700 clamp(2rem,4vw,2.8rem)/1 var(--display);color:var(--ink)}
-.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--sheet);font:500 .74rem/1.35 var(--mono);padding:6px 8px;border-radius:2px;white-space:nowrap}
-.rail{display:flex;flex-direction:column;min-width:0}
-.rail-head{padding:14px 16px;border-bottom:1px solid var(--rule);display:grid;gap:10px}
-.seg{display:flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden;width:max-content}
-.seg button{font:600 .8rem/1 var(--mono);padding:8px 12px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header{display:grid;gap:14px}
+.eyebrow{font:500 .78rem/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--c34c)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;border-top:2px solid var(--ink);padding-top:18px}
+.kpis div{display:grid;gap:4px;align-content:start}
+.kpis b{font:700 clamp(2.2rem,5vw,3rem)/1 var(--display)}
+.kpis span{font-size:.9rem;color:var(--muted)}
+.card{background:var(--sheet);border:1px solid var(--rule);padding:20px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-content:start;min-width:0}
+.mapcard{padding:0;border-color:var(--ink);gap:0}
+.maphead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--rule)}
+.mapbox{position:relative}
+canvas#map{display:block;width:100%;height:auto;aspect-ratio:1/0.82;cursor:crosshair}
+.legend{position:absolute;left:12px;bottom:12px;background:var(--sheet);border:1px solid var(--rule);padding:8px 10px;font:500 .74rem/1.3 var(--mono);display:grid;gap:5px}
+.sw{display:flex;width:190px;height:10px;border:1px solid var(--rule)}.sw span{flex:1}
+.ticks{display:flex;justify-content:space-between;width:190px}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--sheet);font:500 .76rem/1.35 var(--mono);padding:6px 8px;border-radius:2px;white-space:nowrap}
+.seg{display:flex;border:1px solid var(--ink);border-radius:2px;overflow:hidden;width:max-content;max-width:100%;flex-wrap:wrap}
+.seg button{font:600 .82rem/1 var(--mono);padding:8px 12px;border:0;background:transparent;color:var(--ink);cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--sheet)}
-.seg button:focus-visible,.sidrow:focus-visible,select:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
-.sids{overflow:auto;flex:1;max-height:640px}
-.sidrow{display:grid;grid-template-columns:76px 1fr 64px;gap:10px;align-items:center;padding:7px 16px;border:0;border-bottom:1px solid var(--rule);background:transparent;width:100%;text-align:left;color:var(--ink);cursor:pointer;font:inherit}
-.sidrow:hover,.sidrow[aria-pressed="true"]{background:color-mix(in srgb,var(--mag) 9%,transparent)}
-.sidrow b{font:600 .95rem/1 var(--display);letter-spacing:.03em}
-.bar{height:9px;background:var(--rule);position:relative}
-.bar span{position:absolute;inset:0 auto 0 0;background:var(--mag)}
-.sidrow.l .bar span{background:var(--teal)}
-.sidrow .num{font-size:.8rem;text-align:right}
-.detail{border-top:1px solid var(--ink);padding:14px 16px;display:grid;gap:8px}
-.detail svg{width:100%;height:auto;display:block}
-.panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
-.panel{background:var(--sheet);border:1px solid var(--rule);padding:20px;display:grid;gap:14px;align-content:start;min-width:0}
-.panel.wide{grid-column:1/-1}
-.ph{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--rule);padding-bottom:10px}
-.ph .tag{font:500 .72rem/1 var(--mono);letter-spacing:.12em;color:var(--muted)}
+.seg button:focus-visible{outline:2px solid var(--c34c);outline-offset:2px}
+.caption{padding:12px 16px;border-top:1px solid var(--rule);font-size:.9rem}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 .chart svg{width:100%;height:auto;display:block;overflow:visible}
-.ax{font:500 10.5px var(--mono);fill:var(--muted)}
-.grid line{stroke:var(--rule);stroke-width:1}
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
-.kv div{border-left:2px solid var(--rule);padding-left:10px}
-.kv dt{font:500 .7rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.kv dd{margin:3px 0 0;font:600 1.25rem/1.1 var(--display)}
-.pill{font:600 .7rem/1 var(--mono);padding:4px 7px;border-radius:999px;border:1px solid currentColor;display:inline-block}
-.HIGH{color:var(--ok)}.MEDIUM{color:var(--teal)}.LOW{color:var(--warn)}.NONE{color:var(--mag)}
-select{font:500 .9rem var(--mono);padding:7px 10px;background:var(--sheet);color:var(--ink);border:1px solid var(--ink);border-radius:2px}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-label.tg{display:flex;gap:6px;align-items:center;font:500 .8rem var(--mono)}
-.tablebox{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.86rem}
-th,td{padding:7px 8px;border-bottom:1px solid var(--rule);text-align:left;white-space:nowrap}
-th{font:500 .7rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-td.num{text-align:right}
-ul.notes{margin:0;padding-left:18px;display:grid;gap:6px;max-width:80ch}
-footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:8px;font-size:.85rem}
-@media (max-width:600px){.legend{font-size:.64rem;padding:6px 8px;gap:4px}.swatches,.ticks{width:150px}.layers button{padding:6px 7px}}
-@media (max-width:900px){.plate{grid-template-columns:1fr}.mapbox{border-right:0;border-bottom:1px solid var(--ink)}.sids{max-height:360px}.panels{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.ax{font:500 11px var(--mono);fill:var(--muted)}
+.lab{font:600 12px var(--mono);fill:var(--ink)}
+.take{border-left:3px solid var(--n2);padding-left:12px;font-weight:500}
+ul{margin:0;padding-left:18px;display:grid;gap:6px;max-width:78ch}
+footer{border-top:2px solid var(--ink);padding-top:14px;display:grid;gap:6px;font-size:.84rem}
+@media (max-width:820px){.two{grid-template-columns:1fr}canvas#map{aspect-ratio:1/1.05}}
+@media (max-width:600px){.legend{font-size:.64rem;padding:6px 8px}.sw,.ticks{width:150px}.seg button{padding:7px 9px}}
 </style>
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">OEJN · King Abdulaziz Intl · RWY 34C / 34L departures · prototype day 1 Oct 2026</div>
-  <h1>OEJN Noise Atlas</h1>
-  <p>Who lives under Jeddah's departure routes, and how much departure noise reached them on 1 October 2026. The noise layers come from an ECAC Doc 29 (5th Ed.) model run on the departures actually flown that day (A2 trajectories), with the A5 aircraft-noise data (EASA ANP 2.3) and the A6 population layer (WorldPop 2026, 100 m).</p>
-  <div class="chips" id="chips"></div>
+  <div class="eyebrow">Jeddah OEJN · departures of 1 October 2026</div>
+  <h1>Who heard Jeddah's departures</h1>
+  <p>Noise of every jet departure actually flown on 1 October 2026, computed with the international ECAC Doc 29 method and laid over where people live (WorldPop 2026).</p>
+  <div class="kpis" id="kpis"></div>
 </header>
 
-<section class="plate" aria-label="Population and departure routes map">
-  <div class="mapbox">
-    <canvas id="map" role="img" aria-label="Map of population density around OEJN with departure routes and departure-noise layers of 1 October 2026"></canvas>
-    <div class="seg layers" role="group" aria-label="Map layer">
-      <button data-layer="routes" aria-pressed="true">Routes</button><button data-layer="lden" aria-pressed="false">Lden</button><button data-layer="lnight" aria-pressed="false">Lnight</button><button data-layer="n70" aria-pressed="false">N70</button><button data-layer="dens" aria-pressed="false">Flown</button>
+<section class="card mapcard" aria-label="Noise map">
+  <div class="maphead">
+    <h2 id="maptitle">Noise map</h2>
+    <div class="seg" role="group" aria-label="Map layer">
+      <button data-layer="lden" aria-pressed="true">Day–night level</button><button data-layer="n70" aria-pressed="false">Loud events</button><button data-layer="dens" aria-pressed="false">Flight paths</button>
     </div>
+  </div>
+  <div class="mapbox">
+    <canvas id="map" role="img" aria-label="Map of departure noise and population around Jeddah airport, 1 October 2026"></canvas>
     <div class="legend" id="legend"></div>
     <div class="tip" id="tip" hidden></div>
   </div>
-  <aside class="rail">
-    <div class="rail-head">
-      <h3>People within 3 km of each route</h3>
-      <div class="seg" role="group" aria-label="Runway filter">
-        <button id="f-all" aria-pressed="true">All</button><button id="f-c" aria-pressed="false">34C</button><button id="f-l" aria-pressed="false">34L</button>
-      </div>
-    </div>
-    <div class="sids" id="sids"></div>
-    <div class="detail" id="detail"></div>
-  </aside>
+  <div class="caption muted" id="mapcap"></div>
 </section>
 
-<section class="panels" id="noisepanels">
-  <article class="panel wide">
-    <div class="ph"><h2>Departure noise on 1 October 2026</h2><span class="tag">NOISE MODEL · DOC 29 · OBSERVED DEPARTURES</span></div>
-    <div class="lede" id="lede"></div>
-    <div class="row">
-      <div class="seg" role="group" aria-label="Exposure indicator"><button id="x-lden" aria-pressed="true">Lden</button><button id="x-lnight" aria-pressed="false">Lnight</button><button id="x-n70" aria-pressed="false">N70</button></div>
-      <span class="muted" id="xnote" style="font-size:.85rem"></span>
-    </div>
-    <div class="chart" id="expo"></div>
-    <p class="muted" id="covnote"></p>
-  </article>
-
-  <article class="panel">
-    <div class="ph"><h2>Same aircraft, two runways</h2><span class="tag">RESIDENTS PER DEPARTURE · MEDIAN</span></div>
-    <div class="seg" role="group" aria-label="Threshold"><button id="s-65" aria-pressed="true">LAmax ≥ 65</button><button id="s-70" aria-pressed="false">LAmax ≥ 70</button></div>
+<section class="two">
+  <article class="card">
+    <h2>Same aircraft, two runways</h2>
+    <p class="take" id="sametake"></p>
     <div class="chart" id="same"></div>
-    <p class="muted" id="samenote"></p>
+    <p class="muted" style="font-size:.85rem">Median residents reached by a maximum level of 65 dB or more, per departure. Types flown at least twice from each runway.</p>
   </article>
-
-  <article class="panel">
-    <div class="ph"><h2>Which aircraft</h2><span class="tag">MEAN RESIDENTS · LAmax ≥ 70 dB · PER DEPARTURE</span></div>
+  <article class="card">
+    <h2>The aircraft matters most</h2>
+    <p class="take" id="typetake"></p>
     <div class="chart" id="types"></div>
-    <p class="muted">Bar length: residents reached by LAmax ≥ 70 dB on an average departure of that type; label: departures that day. Hatched = ANP proxy with Δ = 0 (certified levels pending). With engines unknown, Δ follows the Doc 29 conservative variant, so the neo-versus-ceo gap should be confirmed once engines are resolved.</p>
-  </article>
-
-  <article class="panel wide">
-    <div class="ph"><h2>How the noise numbers were checked</h2><span class="tag">VALIDATION + RUN QC</span></div>
-    <dl class="kv" id="nval"></dl>
-    <div class="tablebox"><table id="nqc"></table></div>
+    <p class="muted" style="font-size:.85rem">Average residents reached by 70 dB or more per departure (n = departures that day). Striped: noise data substituted without a correction yet.</p>
   </article>
 </section>
 
-<section class="panels">
-  <article class="panel">
-    <div class="ph"><h2>Distance from the airport</h2><span class="tag">A6 · RINGS FROM ARP</span></div>
-    <div class="chart" id="rings"></div>
-    <p class="muted" id="ringnote"></p>
-  </article>
+<section class="card">
+  <h2>How many people, how loud</h2>
+  <div class="seg" role="group" aria-label="Indicator"><button id="x-lden" aria-pressed="true">Day–night (Lden)</button><button id="x-lnight" aria-pressed="false">Night (Lnight)</button></div>
+  <div class="chart" id="expo"></div>
+  <p class="muted" style="font-size:.85rem" id="xnote"></p>
+</section>
 
-  <article class="panel">
-    <div class="ph"><h2>How loud, how far</h2><span class="tag">A5 · NPD EXPLORER</span></div>
-    <div class="row">
-      <select id="ac" aria-label="Aircraft type"></select>
-      <div class="seg" role="group" aria-label="Noise metric"><button id="m-sel" aria-pressed="true">SEL</button><button id="m-lmax" aria-pressed="false">LAmax</button></div>
-      <label class="tg"><input type="checkbox" id="adj" checked> apply Δ</label>
-    </div>
-    <div id="accard"></div>
-    <div class="chart" id="npd"></div>
-    <p class="muted">Departure noise directly below a straight flight path, by corrected net thrust per engine (one line per tabulated power). Baseline NPD level before Doc 29 duration, directivity, lateral and atmospheric adjustments.</p>
-  </article>
-
-  <article class="panel">
-    <div class="ph"><h2>Engine and weight move the answer</h2><span class="tag">A5 · EASA CONFIGURATIONS</span></div>
-    <div class="seg" role="group" aria-label="Aircraft type for configuration chart"><button id="b-A20N" aria-pressed="true">A20N</button><button id="b-A21N" aria-pressed="false">A21N</button><button id="b-B789" aria-pressed="false">B789</button></div>
-    <div class="chart" id="brk"></div>
-    <p class="muted" id="brknote"></p>
-  </article>
-
-  <article class="panel">
-    <div class="ph"><h2>Checked against ECAC</h2><span class="tag">A5 · DOC 29 VOL 3 · B-2</span></div>
-    <div class="chart" id="v3"></div>
-    <dl class="kv" id="v3kv"></dl>
-  </article>
-
-  <article class="panel wide">
-    <div class="ph"><h2>Fleet → ANP mapping</h2><span class="tag">A5 · aircraft_noise_mapping</span></div>
-    <div class="tablebox"><table id="fleet"></table></div>
-  </article>
-
-  <article class="panel wide">
-    <div class="ph"><h2>Read before using these numbers</h2><span class="tag">SCOPE AND LIMITS</span></div>
-    <ul class="notes" id="notes"></ul>
-  </article>
+<section class="card">
+  <h2>Read with care</h2>
+  <ul id="notes"></ul>
 </section>
 
 <footer>
-  <div class="mono" id="prov"></div>
-  <div class="muted">Sources: EASA ANP database v2.3 · ECAC Doc 29 5th Edition (2026) · EASA ANP substitution tables · WorldPop Global2 R2025A v1 (CC BY 4.0) · Saudi AIP AD 2 OEJN (AIP AMDT 10/26) · Wingbits ADS-B sample, 1 Oct 2026 (evaluation use, via A2) · OEJN METAR (Iowa Environmental Mesonet) · OpenSky aircraft database.</div>
+  <div class="muted" id="prov"></div>
+  <div class="muted">Sources: ECAC Doc 29 5th Ed. (2026) · EASA ANP 2.3 · WorldPop Global2 R2025A (CC BY 4.0) · Saudi AIP AD 2 OEJN · Wingbits ADS-B sample (evaluation use) · OEJN METAR (IEM) · OpenSky aircraft database.</div>
 </footer>
 </div>
 
 <script src="atlas_data.js"></script>
 <script>
 (() => {
-const D = window.ATLAS;
+const D = window.ATLAS, N = D.noise, P = D.population;
 const $ = id => document.getElementById(id);
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const fmt = (x, d = 0) => x == null ? "—" : Number(x).toLocaleString("en-US", {maximumFractionDigits: d, minimumFractionDigits: d});
-const fmtK = x => x >= 1e6 ? (x / 1e6).toFixed(2) + " M" : x >= 1e3 ? (x / 1e3).toFixed(x >= 1e5 ? 0 : 1) + " k" : fmt(x);
+const fmt = x => x == null ? "—" : Math.round(x).toLocaleString("en-US");
+const fmtK = x => x >= 1e6 ? (x / 1e6).toFixed(1) + "M" : x >= 1e4 ? Math.round(x / 1e3) + "k" : x >= 1e3 ? (x / 1e3).toFixed(1) + "k" : fmt(x);
+const hex = h => { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 const NS = "http://www.w3.org/2000/svg";
-function svg(w, h) { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); return s; }
-function el(tag, attrs = {}, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
-function txt(parent, x, y, s, attrs = {}) { const t = el("text", {x, y, class: "ax", ...attrs}, parent); t.textContent = s; return t; }
+const svg = (w, h) => { const s = document.createElementNS(NS, "svg"); s.setAttribute("viewBox", `0 0 ${w} ${h}`); return s; };
+function el(t, a = {}, p) { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); if (p) p.appendChild(e); return e; }
+function txt(p, x, y, s, a = {}) { const t = el("text", {x, y, class: "ax", ...a}, p); t.textContent = s; return t; }
+const pk = (arr, t) => arr.find(x => x.t === t)?.pop;
 
-/* ---------- header chips ---------- */
-const a5 = D.a5, P = D.population, N = D.noise;
-const chips = [
-  ...(N ? [[`Noise model · ${N.coverage.modelled} of ${N.coverage.in_scope} departures · Vol 3 ≤ ${N.validation.b2_max_db.toExponential(1)} dB`, true]] : []),
-  [`A5 · ${a5.qc.ERROR} errors · ${a5.qc.PASS} checks passed`, a5.qc.ERROR === 0],
-  [`Doc 29 Vol 3 reproduced · max |Δ| ${a5.vol3.max_abs_diff.toExponential(1)} dB`, a5.vol3.max_abs_diff < 0.01],
-  [`A6 · population conserved exactly · ${fmt(P.summary.receptors)} cells`, P.summary.qc.ERROR === 0],
-  [`16 SIDs digitised · legs within ${D.sid_check.max_abs_diff_nm} NM of AIP`, D.sid_check.max_abs_diff_nm <= 0.1],
-  [`${a5.qc.UNRESOLVED} open item · ${a5.qc.WARNING} source warnings`, false],
-];
-$("chips").innerHTML = chips.map(([t, ok]) => `<span class="chip ${ok ? "" : "warn"}"><i></i>${t}</span>`).join("");
+/* ---------- key numbers ---------- */
+$("kpis").innerHTML = [
+  [fmt(N.coverage.modelled), `departures modelled, of ${N.coverage.in_scope} observed`],
+  [fmtK(pk(N.lden, 55)), "people above 55 dB day–night level"],
+  [fmtK(pk(N.lnight, 50)), "people above 50 dB at night"],
+  [fmtK(pk(N.n70, 10)), "people who heard 10+ departures louder than 70 dB"],
+].map(([v, l]) => `<div><b class="num">${v}</b><span>${l}</span></div>`).join("");
 
 /* ---------- map ---------- */
-let E = D.extent; const lat0 = (E.south + E.north) / 2, kx = Math.cos(lat0 * Math.PI / 180);
-const NZ = {south: 21.36, north: 22.06, west: 38.80, east: 39.50};   // noise layers: zoom on the departure footprint
-const cv = $("map"), ctx = cv.getContext("2d");
-let W = 0, H = 0, sc = 1, ox = 0, oy = 0, runway = "all", selected = null, layer = "routes";
-const LAYERS = {
-  lden: {i: 2, steps: [45, 50, 55, 60, 65, 70], unit: "Lden dB", title: "Lden, departures of 1 Oct 2026"},
-  lnight: {i: 3, steps: [40, 45, 50, 55, 60, 65], unit: "Lnight dB", title: "Lnight (23–07 local)"},
-  n70: {i: 4, steps: [1, 5, 10, 20, 50, 100], unit: "events", title: "N70: departures with LAmax ≥ 70 dB"},
-  dens: {i: 5, steps: [1, 5, 10, 25, 50, 100], unit: "departures", title: "Flown departures per 0.5 km cell"},
-};
-const nCols = () => ["--n0", "--n1", "--n2", "--n3", "--n4"].map(css);
-function stepColor(v, steps) { const cols = layer === "dens" ? trkCols() : nCols(); let k = -1; steps.forEach((t, j) => { if (v >= t) k = j; }); return k < 0 ? null : cols[Math.min(cols.length - 1, Math.round(k * (cols.length - 1) / (steps.length - 1)))]; }
-function trkCols() { const t = hex(css("--trk")), b = hex(css("--sheet")); return [0.22, 0.4, 0.58, 0.78, 1].map(a => `rgb(${t.map((v, k) => Math.round(b[k] + (v - b[k]) * a)).join(",")})`); }
-const proj = (lon, lat) => [ox + (lon - E.west) * kx * sc, oy + (E.north - lat) * sc];
+const E = {south: 21.40, north: 22.02, west: 38.86, east: 39.42};
+const COS = Math.cos(21.7 * Math.PI / 180), kx = COS, cv = $("map"), ctx = cv.getContext("2d");
+let W = 0, H = 0, sc = 1, ox = 0, oy = 0, layer = "lden";
+const proj = (lo, la) => [ox + (lo - E.west) * kx * sc, oy + (E.north - la) * sc];
 const unproj = (x, y) => [E.west + (x - ox) / (kx * sc), E.north - (y - oy) / sc];
-const grid = P.grid, popVals = grid.map(g => g[2]).sort((a, b) => a - b);
-const pHi = popVals[Math.floor(popVals.length * 0.995)] || 1;
-function ramp(t) { // t in [0,1] -> colour along p0..p4
-  const stops = ["--p0", "--p1", "--p2", "--p3", "--p4"].map(css);
-  const i = Math.min(3, Math.floor(t * 4)), f = t * 4 - i;
-  const a = hex(stops[i]), b = hex(stops[i + 1]);
-  return `rgb(${a.map((v, k) => Math.round(v + (b[k] - v) * f)).join(",")})`;
+const L = {
+  lden: {i: 2, steps: [45, 50, 55, 60, 65, 70], title: "Day–night noise level (Lden)", unit: "dB",
+         cap: "Lden: the day's departure noise averaged over 24 hours, with evening (+5 dB) and night (+10 dB) weighting. 55 dB is a common threshold for annoyance."},
+  n70: {i: 4, steps: [1, 5, 10, 20, 50, 100], title: "Loud events: departures above 70 dB", unit: "departures",
+        cap: "How many departures that day reached a maximum of 70 dB or more at each place: loud enough to interrupt a conversation indoors with windows open."},
+  dens: {i: 5, steps: [1, 5, 10, 25, 50, 100], title: "Where the departures flew", unit: "departures per 0.5 km",
+         cap: "How many of the day's departures passed over each 0.5 km square. Most traffic leaves on runway 34C, straight north along the coast."},
+};
+function cols() {
+  if (layer !== "dens") return ["--n0", "--n1", "--n2", "--n3", "--n4"].map(css);
+  const t = hex(css("--trk")), b = hex(css("--sheet"));
+  return [.25, .42, .6, .8, 1].map(a => `rgb(${t.map((v, k) => Math.round(b[k] + (v - b[k]) * a)).join(",")})`);
 }
-function hex(h) { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); }
-const tOf = p => Math.max(0, Math.min(1, Math.log10(1 + p) / Math.log10(1 + pHi)));
-function drawRamp() { const c = $("ramp"); if (!c) return; const r = c.getContext("2d"); for (let x = 0; x < 150; x++) { r.fillStyle = ramp(x / 149); r.fillRect(x, 0, 1, 8); } }
-function legend() {
-  const L = $("legend");
-  if (layer === "routes") {
-    L.innerHTML = `<div>People per ~0.5 km cell</div><canvas class="ramp" id="ramp" width="150" height="8"></canvas>
-      <div class="row" style="justify-content:space-between;width:150px"><span>1</span><span>${fmt(pHi)}+</span></div>
-      <div class="row"><span style="color:var(--mag)">━ RWY 34C (2W)</span><span style="color:var(--teal)">━ RWY 34L (3X)</span></div>
-      <div class="muted">Published SID tracks · ○ 10 / 20 / 40 km</div>`;
-    drawRamp(); return;
-  }
-  const C = LAYERS[layer], cols = layer === "dens" ? trkCols() : nCols();
-  const sw = C.steps.map((t, j) => `<span style="background:${cols[Math.min(cols.length - 1, Math.round(j * (cols.length - 1) / (C.steps.length - 1)))]}"></span>`).join("");
-  L.innerHTML = `<div>${C.title}</div><div class="swatches">${sw}</div>
-    <div class="ticks">${C.steps.map(t => `<span>${t}</span>`).join("")}</div>
-    <div class="muted">${C.unit} · grey: residents · 500 m cells</div>
-    <div class="muted">Departures only · not an annual contour</div>`;
-}
+const colorOf = (v, steps, C) => { let k = -1; steps.forEach((t, j) => { if (v >= t) k = j; }); return k < 0 ? null : C[Math.min(4, Math.round(k * 4 / (steps.length - 1)))]; };
+const pv = P.grid.map(g => g[2]).sort((a, b) => a - b), pHi = pv[Math.floor(pv.length * .995)] || 1;
 function size() {
-  const dpr = window.devicePixelRatio || 1, cssW = cv.clientWidth, cssH = cv.clientHeight;
-  cv.width = cssW * dpr; cv.height = cssH * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); W = cssW; H = cssH;
-  const sx = W / ((E.east - E.west) * kx), sy = H / (E.north - E.south); sc = Math.min(sx, sy);
-  ox = (W - (E.east - E.west) * kx * sc) / 2; oy = (H - (E.north - E.south) * sc) / 2;
+  const dpr = devicePixelRatio || 1; W = cv.clientWidth; H = cv.clientHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  sc = Math.min(W / ((E.east - E.west) * kx), H / (E.north - E.south)); ox = (W - (E.east - E.west) * kx * sc) / 2; oy = (H - (E.north - E.south) * sc) / 2;
 }
 function draw() {
   ctx.fillStyle = css("--sheet"); ctx.fillRect(0, 0, W, H);
-  // graticule
-  ctx.strokeStyle = css("--rule"); ctx.lineWidth = 1; ctx.font = "500 10px " + css("--mono"); ctx.fillStyle = css("--muted");
-  for (let lo = Math.ceil(E.west * 4) / 4; lo <= E.east; lo += 0.25) { const [x] = proj(lo, E.south); ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); if (E !== D.extent || Math.abs(lo % 0.5) < 1e-9) ctx.fillText(lo.toFixed(2).replace(/0$/, "") + "°E", x + 3, H - 6); }
-  for (let la = Math.ceil(E.south * 4) / 4; la <= E.north; la += 0.25) { const [, y] = proj(E.west, la); ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); if (E !== D.extent || Math.abs(la % 0.5) < 1e-9) ctx.fillText(la.toFixed(2).replace(/0$/, "") + "°N", 4, y - 3); }
-  // population
-  const b = P.bin_deg, cw = b * kx * sc + 0.6, ch = b * sc + 0.6;
-  const grey = layer !== "routes", gi = hex(css("--muted")), gb = hex(css("--sheet"));
-  for (const [lo, la, p] of grid) {
-    const [x, y] = proj(lo - b / 2, la + b / 2), t = tOf(p);
-    ctx.fillStyle = grey ? `rgb(${gi.map((v, k) => Math.round(gb[k] + (v - gb[k]) * (0.12 + 0.45 * t))).join(",")})` : ramp(t);
-    ctx.fillRect(x, y, cw, ch);
+  const gi = hex(css("--muted")), gb = hex(css("--sheet")), b = P.bin_deg, cw = b * kx * sc + .6, ch = b * sc + .6;
+  const [vw, vn] = unproj(0, 0), [ve, vs] = unproj(W, H);
+  for (const [lo, la, p] of P.grid) {
+    if (lo < vw - b || lo > ve + b || la < vs - b || la > vn + b) continue;
+    const t = Math.min(1, Math.log10(1 + p) / Math.log10(1 + pHi)), [x, y] = proj(lo - b / 2, la + b / 2);
+    ctx.fillStyle = `rgb(${gi.map((v, k) => Math.round(gb[k] + (v - gb[k]) * (.1 + .45 * t))).join(",")})`; ctx.fillRect(x, y, cw, ch);
   }
-  if (grey && N) { // noise / density cells (500 m), on top of the grey population
-    const C = LAYERS[layer], dl = N.cell_m / 110574, dlo = N.cell_m / (111320 * Math.cos(D.arp.lat * Math.PI / 180));
-    const w = dlo * kx * sc + 0.5, h = dl * sc + 0.5;
-    ctx.globalAlpha = 0.82;
-    for (const c of N.cells) { const col = stepColor(c[C.i], C.steps); if (!col) continue; const [x, y] = proj(c[0] - dlo / 2, c[1] + dl / 2); ctx.fillStyle = col; ctx.fillRect(x, y, w, h); }
-    ctx.globalAlpha = 1;
-  }
-  // rings
+  const C = L[layer], cc = cols(), dl = N.cell_m / 110574, dlo = N.cell_m / (111320 * COS);
+  ctx.globalAlpha = .85;
+  for (const c of N.cells) { const col = colorOf(c[C.i], C.steps, cc); if (!col) continue; const [x, y] = proj(c[0] - dlo / 2, c[1] + dl / 2); ctx.fillStyle = col; ctx.fillRect(x, y, dlo * kx * sc + .5, dl * sc + .5); }
+  ctx.globalAlpha = 1;
   const [ax, ay] = proj(D.arp.lon, D.arp.lat);
-  ctx.setLineDash([3, 4]); ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1;
-  for (const km of [10, 20, 40]) { const ry = km / 111.32 * sc, rx = km / (111.32 * Math.cos(D.arp.lat * Math.PI / 180)) * kx * sc; ctx.beginPath(); ctx.ellipse(ax, ay, rx, ry, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillText(km + " km", ax + rx + 3, ay - 2); }
+  ctx.setLineDash([3, 4]); ctx.strokeStyle = css("--muted"); ctx.lineWidth = 1; ctx.font = "500 11px " + css("--mono"); ctx.fillStyle = css("--muted");
+  for (const km of [10, 20]) { const ry = km / 110.574 * sc, rx = km / 111.32 / COS * kx * sc; ctx.beginPath(); ctx.ellipse(ax, ay, rx, ry, 0, 0, 2 * Math.PI); ctx.stroke(); ctx.fillText(km + " km", ax + rx * 0.71 + 4, ay - ry * 0.71 - 4); }
   ctx.setLineDash([]);
-  // runways (AIP thresholds)
-  if (N) { ctx.strokeStyle = css("--ink"); ctx.lineWidth = 3; ctx.lineCap = "butt"; for (const r of N.runways) { const [x1, y1] = proj(...r.a), [x2, y2] = proj(...r.b); ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); } }
-  // routes
-  const order = layer !== "routes" ? [] : [...D.sids].sort((a, b) => (a.sid === selected) - (b.sid === selected));
-  for (const s of order) {
-    if (runway !== "all" && s.runway !== runway) continue;
-    const col = s.runway === "34C" ? css("--mag") : css("--teal");
-    const sel = s.sid === selected, dim = selected && !sel;
-    ctx.globalAlpha = dim ? 0.25 : 1; ctx.strokeStyle = col; ctx.lineWidth = sel ? 3.2 : 1.6;
-    // runway-to-first-fix connector (approximate: threshold coordinates not in project data)
-    const [fx, fy] = proj(...s.path[0]);
-    ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(fx, fy); ctx.stroke(); ctx.setLineDash([]);
-    ctx.beginPath(); s.path.forEach((p, i) => { const [x, y] = proj(...p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke();
-    if (sel) { // 3 km corridor halo
-      ctx.globalAlpha = 0.14; ctx.lineWidth = 2 * 3 / 111.32 * sc; ctx.lineCap = "round"; ctx.lineJoin = "round";
-      ctx.beginPath(); s.path.forEach((p, i) => { const [x, y] = proj(...p); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); ctx.lineCap = "butt";
-    }
-    ctx.globalAlpha = 1;
+  for (const r of N.runways) {
+    const [x1, y1] = proj(...r.a), [x2, y2] = proj(...r.b);
+    ctx.strokeStyle = r.id === "34C" ? css("--c34c") : r.id === "34L" ? css("--c34l") : css("--muted"); ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    ctx.fillStyle = ctx.strokeStyle; ctx.font = "700 14px " + css("--display"); ctx.fillText(r.id, x1 + (r.id === "34L" ? -28 : 6), y1 + 16);
   }
-  // waypoints of visible routes (fly-by triangles), exits labelled
-  const seen = new Set();
-  ctx.font = "600 11px " + css("--display");
-  for (const s of (layer === "routes" ? D.sids : [])) {
-    if (runway !== "all" && s.runway !== runway) continue;
-    if (selected && s.sid !== selected) continue;
-    s.fixes.forEach((f, i) => {
-      if (seen.has(f)) return; seen.add(f);
-      const [x, y] = proj(...D.waypoints[f]); const exit = i === s.fixes.length - 1;
-      ctx.fillStyle = css("--ink"); ctx.beginPath(); ctx.moveTo(x, y - 4); ctx.lineTo(x + 3.6, y + 2.5); ctx.lineTo(x - 3.6, y + 2.5); ctx.closePath(); ctx.fill();
-      if (exit || selected) { ctx.fillText(f, x + 6, y + 4); }
-    });
-  }
-  // ARP
-  ctx.strokeStyle = css("--ink"); ctx.fillStyle = css("--sheet"); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(ax, ay, 6, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(ax - 10, ay); ctx.lineTo(ax + 10, ay); ctx.moveTo(ax, ay - 10); ctx.lineTo(ax, ay + 10); ctx.stroke();
-  ctx.fillStyle = css("--ink"); ctx.font = "700 14px " + css("--display"); ctx.fillText("OEJN", ax + 10, ay + 18);
+  ctx.fillStyle = css("--ink"); ctx.font = "600 14px " + css("--display");
+  [["Jeddah centre", 39.19, 21.49], ["Obhur", 39.125, 21.745], ["Red Sea", 38.93, 21.60]].forEach(([n, lo, la]) => { const [x, y] = proj(lo, la); ctx.fillText(n, x, y); });
 }
-// hover: population bin under cursor
-const binIndex = new Map(); const bdeg = P.bin_deg;
-for (const g of grid) binIndex.set(Math.round(g[0] / bdeg) + ":" + Math.round(g[1] / bdeg), g);
-const cellIndex = new Map(); const cdl = N ? N.cell_m / 110574 : 1, cdlo = N ? N.cell_m / (111320 * Math.cos(D.arp.lat * Math.PI / 180)) : 1;
-if (N) for (const c of N.cells) cellIndex.set(Math.round(c[0] / cdlo) + ":" + Math.round(c[1] / cdl), c);
+function legend() {
+  const C = L[layer], cc = cols();
+  $("legend").innerHTML = `<div class="sw">${C.steps.map((t, j) => `<span style="background:${cc[Math.min(4, Math.round(j * 4 / (C.steps.length - 1)))]}"></span>`).join("")}</div>
+    <div class="ticks">${C.steps.map(t => `<span>${t}</span>`).join("")}</div><div class="muted">${C.unit} · grey = where people live</div>`;
+  $("maptitle").textContent = C.title; $("mapcap").textContent = C.cap;
+}
+const idx = new Map(), cdl = N.cell_m / 110574, cdlo = N.cell_m / (111320 * COS);
+N.cells.forEach(c => idx.set(Math.round(c[0] / cdlo) + ":" + Math.round(c[1] / cdl), c));
+const pidx = new Map(); P.grid.forEach(g => pidx.set(Math.round(g[0] / P.bin_deg) + ":" + Math.round(g[1] / P.bin_deg), g));
 cv.addEventListener("mousemove", e => {
   const r = cv.getBoundingClientRect(), [lo, la] = unproj(e.clientX - r.left, e.clientY - r.top);
-  const g = binIndex.get(Math.round(lo / bdeg) + ":" + Math.round(la / bdeg));
-  const tip = $("tip");
-  const c = layer !== "routes" && N ? cellIndex.get(Math.round(lo / cdlo) + ":" + Math.round(la / cdl)) : null;
-  if (!g && !c) { tip.hidden = true; return; }
+  const c = idx.get(Math.round(lo / cdlo) + ":" + Math.round(la / cdl)), g = pidx.get(Math.round(lo / P.bin_deg) + ":" + Math.round(la / P.bin_deg)), t = $("tip");
+  if (!c && !g) { t.hidden = true; return; }
   const parts = [];
-  if (c) parts.push(`Lden ${c[2] >= 42 ? c[2].toFixed(0) : "<42"} · Lnight ${c[3] >= 30 ? c[3].toFixed(0) : "—"} · N70 ${c[4]} · ${c[5]} departures overhead`);
-  if (g) parts.push(`${fmt(g[2])} people (0.5 km cell)`);
-  tip.hidden = false; tip.textContent = parts.join(" · ");
-  tip.style.left = Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 6) + "px"; tip.style.top = (e.clientY - r.top + 12) + "px";
+  if (c) parts.push(`Lden ${c[2] >= 42 ? Math.round(c[2]) + " dB" : "< 42 dB"}`, `${c[4]} loud events`, `${c[5]} flights overhead`);
+  if (g) parts.push(`${fmt(g[2])} residents in this 0.5 km area`);
+  t.hidden = false; t.textContent = parts.join(" · ");
+  t.style.left = Math.max(4, Math.min(e.clientX - r.left + 12, r.width - t.offsetWidth - 6)) + "px"; t.style.top = (e.clientY - r.top + 12) + "px";
 });
 cv.addEventListener("mouseleave", () => $("tip").hidden = true);
+document.querySelectorAll("[data-layer]").forEach(b => b.onclick = () => { layer = b.dataset.layer; document.querySelectorAll("[data-layer]").forEach(x => x.setAttribute("aria-pressed", x === b)); legend(); draw(); });
 
-/* ---------- route rail ---------- */
-const maxPop = Math.max(...D.sids.map(s => s.pop_3km));
-function rail() {
-  const rows = D.sids.filter(s => runway === "all" || s.runway === runway).sort((a, b) => b.pop_3km - a.pop_3km);
-  $("sids").innerHTML = rows.map(s => `<button class="sidrow ${s.runway === "34L" ? "l" : ""}" data-sid="${s.sid}" aria-pressed="${s.sid === selected}">
-     <b>${s.sid}</b><span class="bar"><span style="width:${(100 * s.pop_3km / maxPop).toFixed(1)}%"></span></span><span class="num">${fmtK(s.pop_3km)}</span></button>`).join("");
-  $("sids").querySelectorAll(".sidrow").forEach(b => b.onclick = () => { selected = selected === b.dataset.sid ? null : b.dataset.sid; rail(); draw(); detail(); });
-}
-function detail() {
-  const s = D.sids.find(x => x.sid === (selected || [...D.sids].sort((a, b) => b.pop_3km - a.pop_3km)[0].sid));
-  const prof = s.profile_3km_per2km, w = 300, h = 90, m = Math.max(...prof, 1);
-  const g = svg(w, h + 18); const col = s.runway === "34C" ? "var(--mag)" : "var(--teal)";
-  const bw = w / prof.length;
-  prof.forEach((v, i) => el("rect", {x: i * bw, y: h - v / m * h, width: Math.max(bw - 0.6, 0.6), height: v / m * h, fill: col}, g));
-  el("line", {x1: 0, x2: w, y1: h, y2: h, stroke: "var(--rule)"}, g);
-  txt(g, 0, h + 14, "first fix"); txt(g, w, h + 14, `${s.track_km} km → ${s.exit}`, {"text-anchor": "end"});
-  $("detail").innerHTML = `<h3>${s.sid}${selected ? "" : " · most populated"}</h3>
-    <dl class="kv"><div><dt>within 1 km</dt><dd class="num">${fmtK(s.pop_1km)}</dd></div><div><dt>within 3 km</dt><dd class="num">${fmtK(s.pop_3km)}</dd></div><div><dt>3 km · first 30 km</dt><dd class="num">${fmtK(s.pop_3km_first30km)}</dd></div></dl>
-    <div class="muted" style="font-size:.78rem">People within 3 km, per 2 km of published track</div>`;
-  $("detail").appendChild(g);
-}
-function setRunway(r) { runway = r; selected = null; ["f-all", "f-c", "f-l"].forEach((id, i) => $(id).setAttribute("aria-pressed", ["all", "34C", "34L"][i] === r)); rail(); draw(); detail(); }
-$("f-all").onclick = () => setRunway("all"); $("f-c").onclick = () => setRunway("34C"); $("f-l").onclick = () => setRunway("34L");
-
-/* ---------- rings chart ---------- */
-function rings() {
-  const R = P.rings, w = 520, h = 230, l = 54, b = 26, maxP = Math.max(...R.map(r => r.population));
-  const g = svg(w, h); const gg = el("g", {class: "grid"}, g);
-  const xs = r => l + (w - l - 8) * r / R[R.length - 1].radius_km, ys = p => h - b - (h - b - 10) * p / maxP;
-  [0, .25, .5, .75, 1].forEach(f => { el("line", {x1: l, x2: w - 8, y1: ys(f * maxP), y2: ys(f * maxP)}, gg); txt(g, l - 6, ys(f * maxP) + 4, fmtK(f * maxP), {"text-anchor": "end"}); });
-  let d = `M${xs(0)},${ys(0)}`; R.forEach(r => d += ` L${xs(r.radius_km)},${ys(r.population)}`);
-  el("path", {d: d + ` L${xs(R[R.length - 1].radius_km)},${ys(0)} Z`, fill: "var(--p1)", opacity: .35}, g);
-  el("path", {d, fill: "none", stroke: "var(--p3)", "stroke-width": 2}, g);
-  R.forEach(r => { el("circle", {cx: xs(r.radius_km), cy: ys(r.population), r: 3.5, fill: "var(--p3)"}, g); txt(g, xs(r.radius_km), h - 8, r.radius_km, {"text-anchor": "middle"}); });
-  txt(g, w - 8, h - 8 - 14, "km from ARP", {"text-anchor": "end"});
-  $("rings").appendChild(g);
-  const r10 = R.find(r => r.radius_km === 10), r40 = R.find(r => r.radius_km === 40);
-  $("ringnote").textContent = `${fmtK(r10.population)} people live within 10 km of the aerodrome reference point and ${fmtK(r40.population)} within 40 km. Study area 20–23°N, 38–41°E: ${fmtK(P.summary.study_population)} people in ${fmt(P.summary.receptors)} populated 100 m cells.`;
-}
-
-/* ---------- NPD explorer ---------- */
-let metric = "SEL";
-const fleet = a5.fleet;
-$("ac").innerHTML = fleet.map(f => `<option value="${f.icao}">${f.icao}${f.anp ? " → " + f.anp : ""}</option>`).join("");
-function npd() {
-  const f = fleet.find(x => x.icao === $("ac").value), box = $("npd"); box.innerHTML = "";
-  $("accard").innerHTML = `<div class="row"><span class="pill ${f.confidence}">${f.confidence}</span><span class="mono" style="font-size:.82rem">${f.method}</span>
-     <span class="mono" style="font-size:.82rem">Δ ${f.delta == null ? "pending" : (f.delta > 0 ? "+" : "") + f.delta + " dB"}</span>${f.verified ? '<span class="mono muted" style="font-size:.82rem">EASA verified data exists</span>' : ""}</div>
-     <div class="muted" style="font-size:.85rem">${f.desc || ""}</div>`;
-  const c = a5.curves[f.npd]?.[metric]; if (!c) { box.innerHTML = '<p class="muted">No NPD curve: mapping pending.</p>'; return; }
-  const add = $("adj").checked && f.delta != null ? f.delta : 0;
-  const ds = a5.distances_ft, w = 520, h = 260, l = 42, b = 30, t = 10, r = 10;
-  const all = c.flatMap(k => k.L.map(v => v + add)), lo = Math.floor(Math.min(...all) / 10) * 10, hi = Math.ceil(Math.max(...all) / 10) * 10;
-  const xs = d => l + (w - l - r) * (Math.log10(d) - Math.log10(200)) / (Math.log10(25000) - Math.log10(200));
-  const ys = v => t + (h - t - b) * (hi - v) / (hi - lo);
-  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
-  for (let v = lo; v <= hi; v += 10) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); }
-  [200, 1000, 4000, 10000, 25000].forEach(d => { el("line", {x1: xs(d), x2: xs(d), y1: t, y2: h - b}, gg); txt(g, xs(d), h - b + 15, d >= 1000 ? d / 1000 + "k ft" : d + " ft", {"text-anchor": "middle"}); });
-  const pMax = Math.max(...c.map(k => k.p)), pMin = Math.min(...c.map(k => k.p));
-  c.sort((a, b) => a.p - b.p).forEach((k, i) => {
-    const op = 0.35 + 0.65 * (pMax === pMin ? 1 : (k.p - pMin) / (pMax - pMin));
-    el("path", {d: k.L.map((v, j) => `${j ? "L" : "M"}${xs(ds[j]).toFixed(1)},${ys(v + add).toFixed(1)}`).join(""), fill: "none", stroke: "var(--mag)", "stroke-width": 1.8, opacity: op}, g);
-    const last = k.L[k.L.length - 1] + add; if (i === c.length - 1 || i === 0) txt(g, w - r, ys(last) - 4, fmt(k.p) + " lb", {"text-anchor": "end"});
-  });
-  txt(g, l, t + 2, metric + " (dB)", {dy: 8});
-  box.appendChild(g);
-}
-$("ac").onchange = npd; $("adj").onchange = npd;
-$("m-sel").onclick = () => { metric = "SEL"; $("m-sel").setAttribute("aria-pressed", true); $("m-lmax").setAttribute("aria-pressed", false); npd(); };
-$("m-lmax").onclick = () => { metric = "LAmax"; $("m-lmax").setAttribute("aria-pressed", true); $("m-sel").setAttribute("aria-pressed", false); npd(); };
-
-/* ---------- configuration brackets ---------- */
-function brk(code) {
-  ["A20N", "A21N", "B789"].forEach(c => $("b-" + c).setAttribute("aria-pressed", c === code));
-  const pts = a5.brackets[code], box = $("brk"); box.innerHTML = "";
-  const w = 520, h = 250, l = 40, b = 30, t = 30, r = 10;
-  const mx = pts.map(p => p.mtow_t), dy = pts.map(p => p.delta);
-  const x0 = Math.floor(Math.min(...mx) - 1), x1 = Math.ceil(Math.max(...mx) + 1), y0 = Math.floor(Math.min(...dy) - 0.5), y1 = Math.ceil(Math.max(...dy) + 0.5);
-  const xs = v => l + (w - l - r) * (v - x0) / (x1 - x0), ys = v => t + (h - t - b) * (y1 - v) / (y1 - y0);
-  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
-  for (let v = y0; v <= y1; v++) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); }
-  const xstep = (x1 - x0) > 40 ? 20 : 5;
-  for (let v = Math.ceil(x0 / xstep) * xstep; v <= x1; v += xstep) txt(g, xs(v), h - b + 15, v + " t", {"text-anchor": "middle"});
-  if (y0 <= 0 && 0 <= y1) {
-    el("line", {x1: l, x2: w - r, y1: ys(0), y2: ys(0), stroke: "var(--ink)", "stroke-dasharray": "3 3"}, g);
-    txt(g, w - r, ys(0) - 4, "proxy level (Δ = 0)", {"text-anchor": "end"});
-  }
-  txt(g, l - 34, 12, "Δ dB");
-  const fams = [...new Set(pts.map(p => p.family))], cols = ["var(--mag)", "var(--teal)", "var(--warn)", "var(--muted)"];
-  const seen = new Set();
-  pts.forEach(p => { const k = p.mtow_t + ":" + p.delta + ":" + p.family; if (seen.has(k)) return; seen.add(k); el("circle", {cx: xs(p.mtow_t), cy: ys(p.delta), r: 3.4, fill: cols[fams.indexOf(p.family)], opacity: .8}, g); });
-  fams.forEach((f, i) => { el("circle", {cx: l + 40 + i * 90, cy: 8, r: 4, fill: cols[i]}, g); txt(g, l + 48 + i * 90, 12, f); });
-  box.appendChild(g);
-  const fl = a5.fleet.find(x => x.icao === code);
-  $("brknote").textContent = `Each dot is one EASA-certified configuration of the ${code} (certified MTOW × engine). Δ is the decibel adjustment applied to the ANP proxy (${fl?.anp}). Without engine and MTOW from A3, A5 uses the Doc 29 conservative choice: Δ = ${fl?.delta} dB.`;
-}
-["A20N", "A21N", "B789"].forEach(c => $("b-" + c).onclick = () => brk(c));
-
-/* ---------- Vol 3 validation ---------- */
-function v3() {
-  const pts = a5.vol3.points, w = 420, h = 300, l = 40, b = 30, t = 8, r = 8;
-  const all = pts.flat(), lo = Math.floor(Math.min(...all) / 10) * 10, hi = Math.ceil(Math.max(...all) / 10) * 10;
-  const s = v => (v - lo) / (hi - lo), xs = v => l + (w - l - r) * s(v), ys = v => h - b - (h - b - t) * s(v);
-  const g = svg(w, h), gg = el("g", {class: "grid"}, g);
-  for (let v = lo; v <= hi; v += 20) { el("line", {x1: l, x2: w - r, y1: ys(v), y2: ys(v)}, gg); txt(g, l - 6, ys(v) + 4, v, {"text-anchor": "end"}); txt(g, xs(v), h - b + 15, v, {"text-anchor": "middle"}); }
-  el("line", {x1: xs(lo), y1: ys(lo), x2: xs(hi), y2: ys(hi), stroke: "var(--ink)", "stroke-dasharray": "4 3"}, g);
-  pts.forEach(([a, c]) => el("circle", {cx: xs(a), cy: ys(c), r: 2.2, fill: "var(--teal)", opacity: .6}, g));
-  txt(g, w - r, h - 4, "ECAC reference baseline SEL (dB)", {"text-anchor": "end"}); txt(g, l + 4, t + 10, "A5 NPD lookup (dB)");
-  $("v3").appendChild(g);
-  $("v3kv").innerHTML = `<div><dt>segments</dt><dd class="num">${fmt(a5.vol3.n)}</dd></div><div><dt>max |difference|</dt><dd class="num">${a5.vol3.max_abs_diff.toExponential(1)} dB</dd></div><div><dt>tolerance</dt><dd class="num">0.01 dB</dd></div>`;
-}
-
-/* ---------- fleet table ---------- */
-function fleetTable() {
-  $("fleet").innerHTML = `<thead><tr><th>ICAO</th><th>ANP aircraft</th><th>Method</th><th>Δ dep (dB)</th><th>Confidence</th><th>Verified data at EASA</th></tr></thead><tbody>` +
-    fleet.map(f => `<tr><td class="mono">${f.icao}</td><td class="mono">${f.anp || "—"}</td><td class="mono">${f.method}</td><td class="num">${f.delta == null ? "pending" : f.delta.toFixed(1)}</td><td><span class="pill ${f.confidence}">${f.confidence}</span></td><td>${f.verified ? "yes" : ""}</td></tr>`).join("") + "</tbody>";
-}
-
-/* ---------- notes + provenance ---------- */
-$("notes").innerHTML = [
-  "Noise layers are departures only, for one day (1 Oct 2026, UTC): no arrivals, ground noise or other days. Lden, Lnight and the WHO indicators are therefore a single-day departure picture, not annual or regulatory contours.",
-  "Assumptions of the noise run: full take-off thrust (Doc 29 Vol 2 §3.5 for hot conditions; reduced-thrust take-offs would lower near-runway levels), start of roll at the runway threshold, flat terrain, aircraft engines unknown for most airframes (Doc 29 conservative variant). Atmospheric (Appendix D) and impedance adjustments use the METAR closest to each take-off.",
-  "Flown departures are shown only as a density (departures per 500 m cell); individual Wingbits tracks are not published. SID matching in A2 was mostly ambiguous or unmatched, so results are reported by runway, not by procedure.",
-  "Route figures in the rail count people near the published SID ground tracks (fix-to-fix legs). The dotted segment from the airport to each route's first fix is a placeholder and is excluded from every count.",
-  "WorldPop 2026 is a modelled residential estimate (alpha release R2025A), not a census; it shows where people sleep, not where they work or travel.",
-  "The NPD explorer shows baseline levels; the noise layers include the duration, engine-installation, lateral-attenuation, finite-segment, start-of-roll, impedance and atmospheric adjustments of Doc 29.",
-  "B78X and A339 have no certified levels in the EASA tables yet: their departures are modelled on the ANP proxy with Δ = 0 and flagged (hatched in the aircraft chart), not hidden.",
-  ...D.aip_notes.map(n => "AIP check: " + n),
-].map(n => `<li>${n}</li>`).join("");
-$("prov").textContent = `Data releases: ${D.generated_from.a5} · ${D.generated_from.a6}${N ? " · " + N.release : ""} (${P.summary.source_mode === "study_area_extract" ? "study-area extract of the locked WorldPop file" : "national WorldPop file"})`;
-
-/* ---------- map layers ---------- */
-document.querySelectorAll(".layers button").forEach(bt => bt.onclick = () => {
-  layer = bt.dataset.layer; E = layer === "routes" ? D.extent : NZ;
-  document.querySelectorAll(".layers button").forEach(x => x.setAttribute("aria-pressed", x === bt)); size(); legend(); draw();
-});
-if (!N) document.querySelector(".layers").hidden = true;
-
-/* ---------- noise panels ---------- */
-let xmetric = "lden", sthr = "l65";
-function lede() {
-  const pk = (arr, t) => arr.find(x => x.t === t)?.pop;
-  const items = [
-    [N.coverage.modelled, `departures modelled (of ${N.coverage.in_scope} reconstructed by A2)`, false],
-    [pk(N.lden, 55), "residents at Lden ≥ 55 dB", true],
-    [pk(N.lden, 65), "residents at Lden ≥ 65 dB", true],
-    [pk(N.lnight, 50), "residents at Lnight ≥ 50 dB", true],
-    [pk(N.n70, 10), "residents hearing ≥ 10 departures above 70 dB", true],
-  ];
-  $("lede").innerHTML = items.map(([v, l, k]) => `<div><span class="bignum num">${k ? fmtK(v) : fmt(v)}</span><span>${l}</span></div>`).join("");
-  const c = N.coverage;
-  $("covnote").textContent = `Coverage: ${c.modelled} modelled (34C ${c.by_runway["34C"]}, 34L ${c.by_runway["34L"]}; day ${c.by_period.day}, evening ${c.by_period.evening}, night ${c.by_period.night}). Not modelled: ${c.no_type} with no aircraft type in the identity database, ${c.unmapped} helicopters / light aircraft, ${c.path_failed} whose take-off was not observed near the runway. ${c.proxy} departures (B78X, A339) use an ANP proxy with Δ = 0. WHO 2018 exposure–response, indicative only: ${fmtK(N.who.ha)} highly annoyed, ${fmtK(N.who.hsd)} highly sleep-disturbed.`;
-}
-function expo() {
-  const box = $("expo"); box.innerHTML = "";
-  const arr = N[xmetric], w = 760, h = 230, l = 56, b = 34, t = 14, r = 8;
-  const max = Math.max(...arr.map(x => x.pop)), bw = (w - l - r) / arr.length;
-  const ys = v => t + (h - t - b) * (1 - v / max), g = svg(w, h), gg = el("g", {class: "grid"}, g);
-  [0, .25, .5, .75, 1].forEach(f => { el("line", {x1: l, x2: w - r, y1: ys(f * max), y2: ys(f * max)}, gg); txt(g, l - 6, ys(f * max) + 4, fmtK(f * max), {"text-anchor": "end"}); });
-  const cols = nCols();
-  arr.forEach((x, i) => {
-    const X = l + i * bw + bw * 0.14, Y = ys(x.pop);
-    el("rect", {x: X, y: Y, width: bw * 0.72, height: h - b - Y, fill: cols[Math.min(4, Math.round(i * 4 / (arr.length - 1)))]}, g);
-    txt(g, X + bw * 0.36, Y - 5, fmtK(x.pop), {"text-anchor": "middle", style: "fill:var(--ink)"});
-    txt(g, X + bw * 0.36, h - b + 16, (xmetric === "n70" ? "≥ " + x.t + " ev." : "≥ " + x.t + " dB"), {"text-anchor": "middle"});
-  });
-  box.appendChild(g);
-  $("xnote").textContent = {lden: "Residents at or above each Lden level (day-evening-night, +5/+10 dB penalties)", lnight: "Residents at or above each Lnight level (23:00–07:00 local)", n70: "Residents who heard at least N departures with LAmax ≥ 70 dB that day"}[xmetric];
-}
-function setX(m) { xmetric = m; ["lden", "lnight", "n70"].forEach(k => $("x-" + k).setAttribute("aria-pressed", k === m)); expo(); }
+/* ---------- same aircraft, two runways ---------- */
 function same() {
-  const box = $("same"); box.innerHTML = "";
-  const S = N.same_type, w = 520, h = 250, l = 50, b = 40, t = 16, r = 8;
-  const max = Math.max(...S.flatMap(x => [x["34C_" + sthr], x["34L_" + sthr]])) * 1.15;
-  const ys = v => t + (h - t - b) * (1 - v / max), g = svg(w, h), gg = el("g", {class: "grid"}, g);
-  [0, .5, 1].forEach(f => { el("line", {x1: l, x2: w - r, y1: ys(f * max), y2: ys(f * max)}, gg); txt(g, l - 6, ys(f * max) + 4, fmtK(f * max), {"text-anchor": "end"}); });
-  const gw = (w - l - r) / S.length;
+  const S = N.same_type, box = $("same"); box.innerHTML = "";
+  const w = 480, h = 230, l = 10, b = 44, t = 22, max = Math.max(...S.flatMap(x => [x["34C_l65"], x["34L_l65"]])) * 1.12;
+  const g = svg(w, h), gw = (w - l * 2) / S.length, ys = v => t + (h - t - b) * (1 - v / max);
   S.forEach((x, i) => {
-    [["34C", "var(--mag)"], ["34L", "var(--teal)"]].forEach(([rw, col], j) => {
-      const v = x[rw + "_" + sthr], X = l + i * gw + gw * (0.15 + j * 0.36), Y = ys(v);
-      el("rect", {x: X, y: Y, width: gw * 0.32, height: h - b - Y, fill: col}, g);
-      txt(g, X + gw * 0.16, Y - 5, fmtK(v), {"text-anchor": "middle", style: "fill:var(--ink)"});
-      txt(g, X + gw * 0.16, h - b + 28, `${rw} n=${x[rw + "_n"]}`, {"text-anchor": "middle"});
+    [["34C", "--c34c"], ["34L", "--c34l"]].forEach(([rw, c], j) => {
+      const v = x[rw + "_l65"], X = l + i * gw + gw * (.16 + j * .36), Y = ys(v);
+      el("rect", {x: X, y: Y, width: gw * .3, height: h - b - Y, fill: `var(${c})`}, g);
+      txt(g, X + gw * .15, Y - 6, fmtK(v), {"text-anchor": "middle", class: "lab"});
+      txt(g, X + gw * .15, h - b + 32, rw, {"text-anchor": "middle"});
     });
-    txt(g, l + i * gw + gw / 2, h - b + 14, x.type, {"text-anchor": "middle", style: "fill:var(--ink);font-weight:600"});
+    txt(g, l + i * gw + gw / 2, h - b + 16, x.type, {"text-anchor": "middle", class: "lab"});
   });
+  el("line", {x1: l, x2: w - l, y1: h - b, y2: h - b, stroke: "var(--rule)"}, g);
   box.appendChild(g);
-  $("samenote").textContent = "For the same aircraft type the two runways expose similar numbers of residents per departure. The day's gap between runways comes from traffic volume and fleet mix: 34C carries most departures and almost all widebodies. 34L samples are small.";
+  const c = N.coverage.by_runway;
+  $("sametake").textContent = `Flown by the same aircraft, a departure from 34C or 34L reaches about the same number of people. Runway 34C dominates the day because it carries far more flights (${c["34C"]} vs ${c["34L"]}) and almost all the large jets.`;
 }
-function setS(k) { sthr = k; $("s-65").setAttribute("aria-pressed", k === "l65"); $("s-70").setAttribute("aria-pressed", k === "l70"); same(); }
+
+/* ---------- aircraft types ---------- */
 function types() {
   const T = N.types.filter(x => x.n >= 2), box = $("types"); box.innerHTML = "";
-  const w = 520, rh = 22, l = 64, r = 70, h = T.length * rh + 10, max = Math.max(...T.map(x => x.l70));
-  const g = svg(w, h);
-  const defs = el("defs", {}, g), pat = el("pattern", {id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)"}, defs);
+  const w = 480, rh = 21, l = 50, r = 74, h = T.length * rh + 6, max = Math.max(...T.map(x => x.l70)), g = svg(w, h);
+  const pat = el("pattern", {id: "hatch", width: 6, height: 6, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)"}, el("defs", {}, g));
   el("rect", {width: 6, height: 6, fill: "var(--n1)"}, pat); el("line", {x1: 0, y1: 0, x2: 0, y2: 6, stroke: "var(--n3)", "stroke-width": 3}, pat);
   T.forEach((x, i) => {
-    const y = 4 + i * rh, bw = (w - l - r) * x.l70 / max;
-    txt(g, l - 8, y + 13, x.type, {"text-anchor": "end", style: "fill:var(--ink);font-weight:600"});
+    const y = 3 + i * rh, bw = (w - l - r) * x.l70 / max;
+    txt(g, l - 8, y + 12, x.type, {"text-anchor": "end", class: "lab"});
     el("rect", {x: l, y, width: Math.max(bw, 1), height: rh - 7, fill: x.pending ? "url(#hatch)" : (x.cls === "widebody" ? "var(--n3)" : "var(--n2)")}, g);
-    txt(g, l + bw + 6, y + 13, `${fmtK(x.l70)} · n=${x.n}`);
+    txt(g, l + bw + 6, y + 12, `${fmtK(x.l70)} · n=${x.n}`);
   });
   box.appendChild(g);
+  const a = N.types.find(x => x.type === "A320"), n = N.types.find(x => x.type === "A20N");
+  $("typetake").textContent = `Large twin-aisle jets reach the most people. Among the most common aircraft, an A320neo reached about ${fmtK(n.l70)} people at 70 dB, against ${fmtK(a.l70)} for the older A320: the type of aircraft changes exposure more than the choice of runway.`;
 }
-function nval() {
-  const V = N.validation;
-  $("nval").innerHTML = `<div><dt>Vol 3 B-2 segments</dt><dd class="num">${fmt(V.b2_rows)} · ≤ ${V.b2_max_db.toExponential(1)} dB</dd></div>
-    <div><dt>Vol 3 B-1 events</dt><dd class="num">≤ ${V.b1_max_db.toExponential(1)} dB</dd></div>
-    <div><dt>Thrust D-2</dt><dd class="num">${V.d2_points} / ${V.d2_points}</dd></div>
-    <div><dt>Atmosphere D-4</dt><dd class="num">&lt; ${V.d4_max_db} dB</dd></div>
-    <div><dt>Observed-track end-to-end</dt><dd class="num">≤ ${V.e2e_max_db} dB</dd></div>`;
-  $("nqc").innerHTML = `<thead><tr><th>Run check</th><th>Status</th><th>Detail</th></tr></thead><tbody>` +
-    N.qc.map(q => `<tr><td class="mono">${q.check}</td><td><span class="pill ${q.status === "PASS" ? "HIGH" : "LOW"}">${q.status}</span></td><td style="white-space:normal;min-width:320px">${q.detail}</td></tr>`).join("") + "</tbody>";
-}
-if (N) {
-  $("x-lden").onclick = () => setX("lden"); $("x-lnight").onclick = () => setX("lnight"); $("x-n70").onclick = () => setX("n70");
-  $("s-65").onclick = () => setS("l65"); $("s-70").onclick = () => setS("l70");
-  lede(); expo(); same(); types(); nval();
-} else $("noisepanels").hidden = true;
 
-/* ---------- boot + theme ---------- */
-function all() { size(); legend(); draw(); if (N) { expo(); same(); types(); } }
-rail(); detail(); rings(); npd(); brk("A20N"); v3(); fleetTable(); all();
-new ResizeObserver(() => all()).observe(cv);
+/* ---------- exposure ---------- */
+let xm = "lden";
+function expo() {
+  const arr = N[xm], box = $("expo"); box.innerHTML = "";
+  const w = 900, h = 220, l = 10, b = 30, t = 24, max = Math.max(...arr.map(x => x.pop)), bw = (w - 2 * l) / arr.length;
+  const g = svg(w, h), ys = v => t + (h - t - b) * (1 - v / max), cc = ["--n0", "--n1", "--n2", "--n3", "--n4"].map(css);
+  arr.forEach((x, i) => {
+    const X = l + i * bw + bw * .15, Y = ys(x.pop);
+    el("rect", {x: X, y: Y, width: bw * .7, height: h - b - Y, fill: cc[Math.min(4, Math.round(i * 4 / (arr.length - 1)))]}, g);
+    txt(g, X + bw * .35, Y - 7, fmtK(x.pop), {"text-anchor": "middle", class: "lab"});
+    txt(g, X + bw * .35, h - b + 18, "≥ " + x.t + " dB", {"text-anchor": "middle"});
+  });
+  el("line", {x1: l, x2: w - l, y1: h - b, y2: h - b, stroke: "var(--rule)"}, g);
+  box.appendChild(g);
+  $("xnote").textContent = xm === "lden" ? "Residents living at or above each day–night level from the day's departures." : "Residents at or above each night level (23:00–07:00 local), when sleep disturbance matters.";
+}
+const setX = m => { xm = m; $("x-lden").setAttribute("aria-pressed", m === "lden"); $("x-lnight").setAttribute("aria-pressed", m === "lnight"); expo(); };
+$("x-lden").onclick = () => setX("lden"); $("x-lnight").onclick = () => setX("lnight");
+
+/* ---------- notes ---------- */
+const c = N.coverage;
+$("notes").innerHTML = [
+  "Departures only, one day: no arrivals or ground noise. These are not annual noise contours.",
+  `${c.modelled} of ${c.in_scope} departures are included. The other ${c.in_scope - c.modelled} had no known aircraft type (${c.no_type}), were helicopters or light aircraft (${c.unmapped}), or their take-off was not recorded near the runway (${c.path_failed}).`,
+  "Full take-off power is assumed, so levels near the runway are an upper estimate. Engines are unknown for most aircraft, so the noisier engine option was used.",
+  "The model reproduces every official ECAC Doc 29 test case to within 0.05 dB.",
+].map(n => `<li>${n}</li>`).join("");
+$("prov").textContent = `Releases: ${D.generated_from.a5} · ${D.generated_from.a6} · ${N.release}`;
+
+function all() { size(); legend(); draw(); same(); types(); expo(); }
+all();
+new ResizeObserver(() => { size(); draw(); }).observe(cv);
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", all);
 new MutationObserver(all).observe(document.documentElement, {attributes: true, attributeFilter: ["data-theme"]});
 })();

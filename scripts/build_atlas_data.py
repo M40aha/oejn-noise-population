@@ -201,14 +201,14 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     rec, pop = population()
     legs = pd.DataFrame(leg_check())
+    noise = noise_block()
+    # the atlas shows the departure-noise footprint: keep population bins of the map window only
+    win = {"south": 21.30, "north": 22.12, "west": 38.55, "east": 39.75}
+    pop["grid"] = [g for g in pop["grid"] if win["west"] <= g[0] <= win["east"] and win["south"] <= g[1] <= win["north"]]
     data = {
         "generated_from": {"a5": json.loads((A5 / "validation" / "build_summary.json").read_text())["release_id"],
                            "a6": json.loads((A6 / "validation" / "build_summary.json").read_text())["release_id"]},
-        "extent": EXTENT, "arp": {"lat": 21.681111, "lon": 39.156111},
-        "population": pop, "sids": corridor_stats(rec),
-        "waypoints": {k: [r(v[1], 5), r(v[0], 5)] for k, v in WAYPOINTS.items()},
-        "sid_check": {"legs": int(len(legs)), "max_abs_diff_nm": r(legs.diff_nm.abs().max(), 3)},
-        "aip_notes": AIP_NOTES, "a5": a5_block(), "noise": noise_block(),
+        "arp": {"lat": 21.681111, "lon": 39.156111}, "population": pop, "noise": noise,
     }
     js = "window.ATLAS = " + json.dumps(data, separators=(",", ":")) + ";\n"
     (OUT / "atlas_data.js").write_text(js)
@@ -218,7 +218,7 @@ def main():
         '<!doctype html>\n<html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>\n'
         + page + "\n</body></html>\n")
-    print(f"atlas_data.js: {len(js) / 1e6:.2f} MB, {len(pop['grid'])} population bins, {len(data['sids'])} SIDs, "
+    print(f"atlas_data.js: {len(js) / 1e6:.2f} MB, {len(pop['grid'])} population bins, "
           f"{len(data['noise']['cells']) if data['noise'] else 0} noise cells")
 
 
