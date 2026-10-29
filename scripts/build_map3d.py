@@ -50,7 +50,7 @@ def patch():
     s = s.replace(a, a + "\nimport {mountNoise} from './noise-layer.mjs';", 1)
     b = "$('loading').style.display='none';ready=true;"
     assert s.count(b) == 1, "Map 2 init changed; update build_map3d.py"
-    s = s.replace(b, b + "try{const nr=await fetch('./noise-layer.json');if(nr.ok)window.map2noise=mountNoise({scene,data,viewport,noise:await nr.json()})}catch(err){console.warn('noise layer',err)}", 1)
+    s = s.replace(b, b + "try{const nr=await fetch('./noise-layer.json');if(nr.ok)window.map2noise=mountNoise({scene,data,viewport,camera,vertical:()=>vertical,noise:await nr.json()})}catch(err){console.warn('noise layer',err)}", 1)
     (OUT / "studio.js").write_text(s, encoding="utf-8")
     h = (OUT / "index.html").read_text(encoding="utf-8")
     c = '<link rel="stylesheet" href="observed.css">'
@@ -65,12 +65,22 @@ def patch():
 
 
 def noise_json() -> dict:
-    s, meta = grid500(ROOT, step=1)
-    s = s.sort_values(["y_utm37n_m", "x_utm37n_m"])            # row-major, south -> north, west -> east
-    fr = json.loads((ROOT / "data" / "noise" / "validation" / "noise_manifest.json").read_text())
-    out = {"release": meta["release"], "n": meta["n"], "cell_m": meta["cell_m"], "x0": meta["x0"], "y0": meta["y0"],
-           "crs": "EPSG:32637", "modelled": fr["flights_modelled"],
-           "lden": [int(round(v)) if v == v else 0 for v in s.Lden], "n70": [int(v) for v in s.N70], "dens": [int(v) for v in s.dens],
+    import pandas as pd
+    from viz.noise_map import map_block
+    from pyproj import Transformer
+    import yaml
+    cfg = yaml.safe_load((ROOT / "config" / "noise.yaml").read_text())
+    E0, N0 = Transformer.from_crs(4326, 32637, always_xy=True).transform(cfg["aerodrome"]["arp_lon"], cfg["aerodrome"]["arp_lat"])
+    m = map_block(ROOT)
+    ex = pd.read_csv(ROOT / "data" / "noise" / "processed" / "population_exposure.csv")
+    pick = lambda met, band: float(ex[(ex.metric == met) & (ex.band == band)].population.iloc[0])
+    man = json.loads((ROOT / "data" / "noise" / "validation" / "noise_manifest.json").read_text())
+    out = {"release": cfg["release_id"], "crs": "EPSG:32637", "arp_utm": [E0, N0], "modelled": man["flights_modelled"],
+           "n": m["n"], "cell_km": m["cell_km"], "x0": m["x0"], "y0": m["y0"], "grids": m["grids"], "contours": m["contours"],
+           "paths": m["paths"], "places": m["places"],
+           "pop": {"lden": [pick("Lden", f">={t} (cumulative)") for t in (45, 50, 55, 60, 65, 70)],
+                   "lnight": [pick("Lnight", f">={t} (cumulative)") for t in (40, 45, 50, 55, 60, 65)],
+                   "n70": [pick("N70", f">={t} events") for t in (1, 5, 10, 20, 50, 100)]},
            "note": "Departures only, 1 Oct 2026. Derived from Wingbits evaluation data via A2: local use only."}
     (OUT / "noise-layer.json").write_text(json.dumps(out, separators=(",", ":")))
     return out
@@ -98,9 +108,9 @@ def standalone():
     old = "const response=await fetch('./data.json');if(!response.ok)throw new Error('Map dataset could not be loaded');data=await response.json();"
     assert old in st
     st = st.replace(old, "data=JSON.parse(document.getElementById('embedded-map-data').textContent);")
-    oldn = "const nr=await fetch('./noise-layer.json');if(nr.ok)window.map2noise=mountNoise({scene,data,viewport,noise:await nr.json()})"
+    oldn = "const nr=await fetch('./noise-layer.json');if(nr.ok)window.map2noise=mountNoise({scene,data,viewport,camera,vertical:()=>vertical,noise:await nr.json()})"
     assert oldn in st
-    st = st.replace(oldn, "window.map2noise=mountNoise({scene,data,viewport,noise:JSON.parse(document.getElementById('embedded-noise-data').textContent)})")
+    st = st.replace(oldn, "window.map2noise=mountNoise({scene,data,viewport,camera,vertical:()=>vertical,noise:JSON.parse(document.getElementById('embedded-noise-data').textContent)})")
     emb = lambda i, t: f'<script type="application/json" id="{i}">' + t.replace("<", "\\u003c") + "</script>"
     scripts = (emb("embedded-map-data", json.dumps(json.loads(read("data.json")), separators=(",", ":")))
                + emb("embedded-noise-data", read("noise-layer.json"))
@@ -122,7 +132,7 @@ def main(src_repo: str):
         "files_sha256": hashes, "patched": ["studio.js (noise-layer mount, 2 lines)", "index.html (stylesheet link, title, header pill, one sentence in Sources)"],
         "added": ["noise-layer.mjs", "noise-layer.css", "noise-layer.json", "OEJN_Map3D_Noise.html"],
         "noise_release": nj["release"]}, indent=2))
-    print(f"map3d ready: {p} ({p.stat().st_size / 1e6:.1f} MB); grid {nj['n']}x{nj['n']} @ {nj['cell_m']:.0f} m")
+    print(f"map3d ready: {p} ({p.stat().st_size / 1e6:.1f} MB); grid {nj['n']}x{nj['n']} @ {nj['cell_km'] * 1000:.0f} m")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,14 @@
 # Map 2 + departure noise — local copy
 
 A copy of the team's **Map 2 · Departure Studio** (M-AlGhazali/Research-and-Innovation-department-SANS-project, `map-2/`)
-with one addition: a **Noise · 1 Oct 2026** panel. It draws the departure-noise results of this repository on the ground of
-the 3D scene:
-- **Lden:** day–night level.
-- **N70:** departures with LAmax ≥ 70 dB.
-- **Flown:** observed departures per 250 m cell.
+with one addition: a **Noise · 1 Oct 2026** panel. It shows the departure-noise results of this repository in the 3D
+scene:
+- **Graded noise surface** (green → yellow → orange → red → dark red) for **Day–night (Lden)**, **Night (Lnight)** or
+  **Loud events (N70)**, with contour lines.
+- **Typical flight paths in 3D:** median track and median observed height of each group of departures, thickness by
+  number of departures, coloured by runway, with a dashed ground shadow.
+- **Neighbourhood names** (OpenStreetMap, Arabic and English).
+- **Legend:** what each colour means and how many residents live in it.
 
 The team repository is **not modified**. Its files are copied unchanged (sha256 in `SOURCE.json`). Only two of them get a
 small patch, made and checked by `scripts/build_map3d.py`:

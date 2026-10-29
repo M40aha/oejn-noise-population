@@ -1,13 +1,22 @@
-.noise-panel{position:absolute;top:175px;right:22px;width:240px;background:#ffffffe8;border:1px solid #d3e2e9;border-radius:12px;padding:12px 13px;display:grid;gap:9px;backdrop-filter:blur(12px);z-index:5;font-size:10px;color:#204552;box-shadow:0 6px 20px #153f4b18}
-.noise-panel>small{letter-spacing:1.2px;color:#6a2a9e;font-size:9px;font-weight:600}
+/* Noise panel for the local Map 2 copy (sits under the header, right; never over the flight card: JS limits its height) */
+.noise-panel{position:absolute;top:96px;right:22px;width:262px;background:#ffffffeb;border:1px solid #d3e2e9;border-radius:12px;padding:12px 13px;display:grid;gap:9px;backdrop-filter:blur(12px);z-index:6;font-size:11px;color:#204552;box-shadow:0 6px 20px #153f4b1f;overflow:auto;overscroll-behavior:contain}
+#viewport:has(.noise-panel) .view-guide,#viewport:has(.noise-panel) .map-coordinate{display:none}
+.noise-panel>small{letter-spacing:1.2px;color:#b30000;font-size:9px;font-weight:700}
 .noise-seg{display:flex;border:1px solid #c9dbe3;border-radius:7px;overflow:hidden}
-.noise-seg button{flex:1;background:transparent;border:0;color:#204552;padding:7px 0;font:600 11px inherit;cursor:pointer}
-.noise-seg button[aria-pressed="true"]{background:#6a2a9e;color:#fff}
-.noise-seg button:focus-visible{outline:2px solid #6a2a9e;outline-offset:-2px}
-.noise-legend{display:grid;gap:5px;line-height:1.35}
-.noise-legend b{font-size:11px;color:#14323d}
-.noise-legend span{color:#5f7c88}
-.noise-sw{display:flex;height:9px;border-radius:2px;overflow:hidden}.noise-sw span{flex:1}
-.noise-ticks{display:flex;justify-content:space-between}
-.noise-ticks span{color:#204552}
-@media (max-width:760px){.noise-panel{top:auto;bottom:420px;right:12px;width:200px}}
+.noise-seg button{flex:1;background:transparent;border:0;color:#204552;padding:7px 2px;font:600 10.5px/1.1 inherit;cursor:pointer}
+.noise-seg button[aria-pressed="true"]{background:#14323d;color:#fff}
+.noise-seg button:focus-visible,.noise-panel summary:focus-visible{outline:2px solid #e34a33;outline-offset:-2px}
+.noise-body{display:grid;gap:6px}
+.noise-toggles{display:flex;gap:10px;flex-wrap:wrap;font-size:10.5px}
+.noise-toggles label{display:flex;gap:4px;align-items:center;cursor:pointer}
+.noise-title{font-size:12px;color:#14323d;margin-top:2px}
+.noise-grad{width:100%;height:10px;border-radius:2px;display:block}
+.noise-ticks{display:flex;justify-content:space-between;font-size:10px;color:#204552}
+.noise-panel details{border-top:1px solid #e1ebf0;padding-top:6px}
+.noise-panel summary{cursor:pointer;font-weight:600;color:#14323d;font-size:10.5px}
+.noise-bands{display:grid;gap:4px;margin-top:6px}
+.noise-bands div{display:grid;grid-template-columns:11px 1fr auto;gap:6px;align-items:center;font-size:10px;line-height:1.25}
+.noise-bands i{width:11px;height:11px;border-radius:2px}
+.noise-bands em{font-style:normal;font-weight:600;color:#14323d}
+.noise-foot{color:#6b8590;font-size:9.5px;line-height:1.35}
+@media (max-width:760px){.noise-panel{top:auto;bottom:420px;right:12px;width:220px}}

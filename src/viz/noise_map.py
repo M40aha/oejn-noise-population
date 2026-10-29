@@ -133,18 +133,19 @@ def typical_paths(root: Path, E0: float, N0: float, min_n: int = 3) -> list:
         brg = (np.degrees(np.arctan2(x[k], y[k])) + 360) % 360
         key = (rwy, int(((brg + SECTOR_DEG / 2) % 360) // SECTOR_DEG))
         grid = np.arange(0, min(s[-1], 80) + 1e-9, 1.0)
-        groups.setdefault(key, []).append((np.interp(grid, s, x), np.interp(grid, s, y), brg))
+        groups.setdefault(key, []).append((np.interp(grid, s, x), np.interp(grid, s, y), brg, np.interp(grid, s, d.z_ft.to_numpy())))
     paths = []
     for (rwy, sector), tr in groups.items():
         if len(tr) < min_n:
             continue
         L = max(len(t[0]) for t in tr)
-        med = []
+        med, alt = [], []
         for i in range(L):
-            have = [(t[0][i], t[1][i]) for t in tr if len(t[0]) > i]
+            have = [(t[0][i], t[1][i], t[3][i]) for t in tr if len(t[0]) > i]
             if len(have) < 0.6 * len(tr):
                 break
             a = np.array(have)
             med.append([_r(np.median(a[:, 0])), _r(np.median(a[:, 1]))])
-        paths.append({"runway": rwy, "n": len(tr), "bearing": int(round(np.median([t[2] for t in tr]))), "path": med})
+            alt.append(int(round(np.median(a[:, 2]))))
+        paths.append({"runway": rwy, "n": len(tr), "bearing": int(round(np.median([t[2] for t in tr]))), "path": med, "alt_ft": alt})
     return sorted(paths, key=lambda p: -p["n"])
