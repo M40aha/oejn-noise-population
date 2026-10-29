@@ -43,7 +43,7 @@ This is what is done; no procedure profile is imposed on the observed tracks.
   The fit uses the heights between 100 and 1,000 ft within 120 s of the first point above 100 ft; ADS-B heights near the runway
   are 25-ft quantised and the roll itself is often not reported, so points below 100 ft are not used. The result is clamped to
   [1,500 ft, TORA] (flagged). The lift-off speed comes from the same points (V² linear in distance), with a plausibility window
-  of 100–220 kt. On 1 Oct the median lift-off is ≈ 2,380 m from SOR at ≈ 172 kt.
+  of 100–220 kt. On 1 Oct the median lift-off is ≈ 2,370 m (7,780 ft) from SOR at ≈ 173 kt (`s_lo_ft`, `v_lo_kt` in `flight_results.csv`).
 - **Rejected paths:** a departure whose first airborne observation lies more than 5 km from the lift-off point or above 3,000 ft
   (the take-off was not observed near the runway) is not modelled (`PATH_FAILED`, reason recorded); so is a track with fewer
   than 3 airborne points.
