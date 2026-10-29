@@ -1,4 +1,4 @@
-"""Data block for the atlas noise map: noise grids, contours, typical flight paths and a light basemap.
+"""Presentation data for the 3D noise map: noise grids, contours, typical flight paths and a light basemap.
 
 Frame: kilometres east / north of the aerodrome reference point in UTM 37N (EPSG:32637), the CRS of A2, A6 and the
 noise grid, so every layer overlays without reprojection error.

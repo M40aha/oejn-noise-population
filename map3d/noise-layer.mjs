@@ -120,7 +120,7 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
   // ---------- panel ----------
   const panel = document.createElement('div');
   panel.className = 'noise-panel';
-  panel.innerHTML = `<small>NOISE · 1 OCT 2026 · LOCAL ONLY</small>
+  panel.innerHTML = `<div class="noise-head"><small>NOISE · 1 OCT 2026 · LOCAL ONLY</small><button class="noise-more" type="button">Results ↗</button></div>
     <div class="noise-seg" role="group" aria-label="Noise layer">
       <button data-l="off" aria-pressed="true">Off</button>${Object.entries(METRIC).map(([k, m]) => `<button data-l="${k}" aria-pressed="false">${m.label}</button>`).join('')}
     </div>
@@ -131,6 +131,8 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
       <span class="noise-foot">${N.modelled} observed jet departures · ECAC Doc 29 · departures only, one day · Wingbits evaluation data: do not publish</span>
     </div>`;
   viewport.append(panel);
+  const dlg = resultsDialog(N);
+  panel.querySelector('.noise-more').onclick = () => dlg.showModal();
   const body = panel.querySelector('.noise-body'), show = {paths: true, contours: true, names: true};
   let current = 'off';
   function legend(k) {
@@ -163,4 +165,60 @@ export function mountNoise({scene, data, viewport, camera, vertical, noise}) {
   }
   new ResizeObserver(place).observe(viewport); panel.querySelector('details').addEventListener('toggle', place);
   return {set: l => panel.querySelector(`[data-l="${l}"]`)?.click(), root};
+}
+
+
+// ---------- results dialog: the headline findings, how they were calculated, and the limits ----------
+function resultsDialog(N) {
+  const R = N.stats, c = R.coverage, k = R.kpi, d = document.createElement('dialog');
+  d.className = 'noise-dialog';
+  const bar = (v, max, col, label) => { const f = 100 * v / max;
+    return `<div class="nd-bar"><span style="width:${f.toFixed(1)}%;background:${col}"></span><em class="${f > 55 ? 'in' : ''}" style="${f > 55 ? '' : `left:calc(${f.toFixed(1)}% + 6px)`}">${label}</em></div>`; };
+  const cum = (arr, i) => arr[i] - (arr[i + 1] || 0);
+  const ldenRows = [45, 50, 55, 60, 65, 70].map((t, i) => [t, cum(N.pop.lden, i)]), nightRows = [40, 45, 50, 55, 60, 65].map((t, i) => [t, cum(N.pop.lnight, i)]);
+  const maxBand = Math.max(...ldenRows.map(r => r[1]), ...nightRows.map(r => r[1]));
+  const band = (rows) => rows.map(([t, v], i) => `<div class="nd-row"><i style="background:${RAMP[i]}"></i><span>${i === 5 ? '≥ ' + t : t + '–' + (t + 5)} dB</span>${bar(v, maxBand, RAMP[i], fmtK(v))}</div>`).reverse().join('');
+  const sMax = Math.max(...R.same_type.flatMap(x => [x['34C_l65'], x['34L_l65']]));
+  const same = R.same_type.map(x => `<div class="nd-pair"><b>${x.type}</b>${bar(x['34C_l65'], sMax, RWY['34C'], `34C · ${fmtK(x['34C_l65'])} (n=${x['34C_n']})`)}${bar(x['34L_l65'], sMax, RWY['34L'], `34L · ${fmtK(x['34L_l65'])} (n=${x['34L_n']})`)}</div>`).join('');
+  const T = R.types.filter(t => t.n >= 2), tMax = Math.max(...T.map(t => t.l70));
+  const types = T.map(t => `<div class="nd-row nd-type"><b>${t.type}</b>${bar(t.l70, tMax, t.pending ? '#fdae61' : t.cls === 'widebody' ? '#b30000' : '#fc8d59', `${fmtK(t.l70)} · n=${t.n}${t.pending ? ' · proxy, Δ pending' : ''}`)}</div>`).join('');
+  const a320 = R.types.find(t => t.type === 'A320'), neo = R.types.find(t => t.type === 'A20N');
+  d.innerHTML = `<button class="nd-close" aria-label="Close">×</button>
+  <small>DEPARTURE NOISE · JEDDAH OEJN · 1 OCTOBER 2026</small>
+  <h2>Who heard Jeddah's departures</h2>
+  <div class="nd-kpis">
+    <div><b>${c.modelled}</b><span>departures modelled, of ${c.in_scope} observed</span></div>
+    <div><b>${fmtK(k.lden55)}</b><span>people above 55 dB day–night (EU mapping threshold)</span></div>
+    <div><b>${fmtK(k.lnight50)}</b><span>people above 50 dB at night</span></div>
+    <div><b>${fmtK(k.n70_10)}</b><span>people who heard 10+ departures above 70 dB</span></div>
+  </div>
+  <h3>How many people, how loud</h3>
+  <div class="nd-two"><div><p class="nd-cap">Day–night level (Lden)</p>${band(ldenRows)}</div><div><p class="nd-cap">Night level (23:00–07:00)</p>${band(nightRows)}</div></div>
+  <p>WHO recommends aircraft noise below 45 dB Lden and 40 dB at night. Applying the WHO 2018 exposure–response curves to this single day gives about <b>${fmtK(R.who.ha)}</b> people highly annoyed and <b>${fmtK(R.who.hsd)}</b> highly sleep-disturbed. This is indicative only: those curves describe long-term exposure to all flights.</p>
+  <h3>Same aircraft, two runways</h3>
+  <p>Median residents reached by 65 dB or more per departure. For the same aircraft the two runways are close. Runway 34C dominates the day because it carries ${c.by_runway['34C']} of the ${c.modelled} departures and almost all large jets: alone it puts ${fmtK(R.rwy_alone['34C'][55])} people above 55 dB, against ${fmtK(R.rwy_alone['34L'][55])} for 34L.</p>
+  <div class="nd-pairs">${same}</div>
+  <h3>The aircraft matters most</h3>
+  <p>Average residents reached by 70 dB or more per departure. An A320neo reached about ${fmtK(neo.l70)} people, against ${fmtK(a320.l70)} for the older A320.</p>
+  <div class="nd-types">${types}</div>
+  <h3>How it was calculated</h3>
+  <ul>
+    <li><b>Method:</b> ECAC Doc 29, 5th edition (2026), the European standard for airport noise contours. Every observed departure is split into segments; each segment's noise at each point uses the aircraft's noise–power–distance curves (EASA ANP 2.3) with corrections for speed, engine position, ground attenuation, segment length and start of roll.</li>
+    <li><b>Flights:</b> real tracks from the A2 reconstruction (Wingbits ADS-B), with take-off point, height and speed from the data; engine thrust from the Doc 29 performance equations; weather (temperature, humidity, pressure) from the OEJN METAR at take-off.</li>
+    <li><b>Aircraft:</b> type from the OpenSky aircraft database; noise data substituted with the EASA tables where the exact type is not in ANP.</li>
+    <li><b>People:</b> WorldPop 2026 residents per 100 m cell (3.8 million inside the 80 × 80 km map); each cell takes the noise level at its location.</li>
+    <li><b>Checked:</b> the model reproduces all official Doc 29 test cases: ${R.validation.b2_rows.toLocaleString()} segments within ${R.validation.b2_max_db} dB, events within ${R.validation.b1_max_db} dB, all ${R.validation.d2_points} thrust points, and an observed-track test within ${R.validation.e2e_max_db} dB.</li>
+  </ul>
+  <h3>Read with care</h3>
+  <ul>
+    <li>Departures only, one day: no arrivals or ground noise; not annual noise contours.</li>
+    <li>Not modelled: ${c.no_type} departures without a known aircraft type, ${c.unmapped} helicopters or light aircraft, and ${c.path_failed} whose take-off was not recorded near the runway.</li>
+    <li>Full take-off power and the noisier engine option are assumed where unknown, so levels near the runway are an upper estimate. ${c.proxy} departures (B78X, A339) use substitute noise data without a correction yet.</li>
+    <li>Flight paths on the map are typical (median) tracks of groups of departures, never individual flights. Wingbits data are for evaluation only: keep this map local.</li>
+  </ul>
+  <p class="nd-foot">Release ${R.release}. Full tables: docs/noise/results_2026-10-01.md and data/noise/processed in the oejn-noise-population repository.</p>`;
+  document.body.append(d);
+  d.querySelector('.nd-close').onclick = () => d.close();
+  d.addEventListener('click', e => { if (e.target === d) d.close(); });
+  return d;
 }

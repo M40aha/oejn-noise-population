@@ -1,4 +1,4 @@
-"""OEJN RNAV SIDs, RWY 34C (2W) and 34L (3X), for VISUALISATION in the A5/A6 atlas.
+"""OEJN RNAV SIDs, RWY 34C (2W) and 34L (3X), for visualisation (kept from the former atlas).
 
 Transcribed from Saudi AIP AD 2 OEJN-110/111/114/115 (AIP AMDT 10/26, 17 SEP 2026).
 This is NOT the A1 deliverable (the A1 owner's dataset is authoritative). Every fix-to-fix (TF) leg is

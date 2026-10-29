@@ -11,9 +11,15 @@ This repository holds the two preprocessed layers (A5, A6) and the **Doc 29 nois
 
 Tests: **50 / 50 pass** (`tests/`: A5 21, A6 12, noise 17). Independent re-implementation check for A5: **15 / 15** (`scripts/verify_a5_independent.py`).
 
-**Creative output — OEJN Noise Atlas:** `docs/atlas/OEJN_Noise_Atlas.html` (open in any browser). An aeronautical-chart
-style map of population under the 16 published departure routes, an NPD explorer per fleet type, the engine/weight effect
-on noise corrections, and the Doc 29 validation evidence.
+**Main output — 3D noise map (local):** `map3d/OEJN_Map3D_Noise.html` (double-click; Chrome or Edge). The team's Map 2
+Departure Studio with the 1-Oct departure noise:
+- graded noise surface (day–night, night, loud events) with contours;
+- typical flight paths in 3D and neighbourhood names;
+- a **Results** panel: people per noise band, runway and aircraft comparisons, WHO indicators, method, validation and limits.
+
+Local use only (Wingbits-derived). See [`map3d/README.md`](map3d/README.md).
+
+All numbers behind it are in [`docs/noise/results_2026-10-01.md`](docs/noise/results_2026-10-01.md) and `data/noise/processed/`.
 
 ---
 
@@ -46,7 +52,9 @@ PYTHONPATH=src python -m a5.build
 PYTHONPATH=src python -m a6.build        # full WorldPop file, or the study-area extract (see below)
 PYTHONPATH=src python -m pytest -q tests
 python scripts/verify_a5_independent.py ../OEJN-Noise-Fuel-Capacity/A5
-PYTHONPATH=src python scripts/build_atlas_data.py
+PYTHONPATH=src python -m noise.run                      # noise run (inputs in data/inputs, git-ignored)
+PYTHONPATH=src python scripts/noise_figures.py          # results_2026-10-01.md + figures
+PYTHONPATH=src python scripts/build_map3d.py <A1/A2 repo>   # 3D noise map
 ```
 Builds are deterministic: rebuilding gives byte-identical tables (checked with content hashes in `output_manifest.csv`).
 **Colab:** `!PYTHONPATH=src python -m a5.build` etc. work unchanged.
@@ -57,19 +65,20 @@ Builds are deterministic: rebuilding gives byte-identical tables (checked with c
 config/            a5.yaml, a6.yaml — source hashes (locks), policies, tolerances. No magic numbers in code.
 src/a5/            ingest · schemas · anp_checks · npd · easa · mapping · vol3 · qc · report · build
 src/a6/            build (window read, receptors, aggregates, QC)
-src/viz/sids.py    the 16 published SIDs (for the atlas; checked against AIP leg distances)
+src/viz/           sids (16 published SIDs) · noise_grid / noise_map / noise_stats (presentation data for the 3D map)
 data/a5/           interim/ (typed, provenance) · processed/ (DuckDB + parquet) · validation/ (QC) · reviews/ (manual input)
 data/a6/           processed/ (receptors, grids, rings, clipped GeoTIFF) · validation/ (QC)
 docs/a5/           methodology · integration contract · decisions log · data dictionary
 docs/a6/           methodology
-docs/atlas/        OEJN Noise Atlas (stand-alone HTML) + its data
+map3d/             local 3D noise map (copy of team Map 2 + noise layer), stand-alone HTML
 src/noise/         doc29 (segment levels) · atmosphere (App. D) · performance (App. B) · flightpath (Ch. 3, observed tracks)
                    · site (OEJN frame, heights, CAS) · weather (METAR) · event (SEL/LAmax) · run (pipeline, metrics, exposure)
 config/noise.yaml  noise-model run configuration
 data/external/     A1 runway table (AIP AMDT 10/26) used for start of roll / elevations
 data/noise/        processed/ (grid, GeoTIFF, exposure, per-flight results) · validation/ (QC, manifest) · interim/ (git-ignored)
-docs/noise/        methodology_noise.md
-scripts/           independent A5 verification · A6 study-area extractor · atlas data builder · A2 noise extract ·
+docs/noise/        methodology_noise.md · results_2026-10-01.md · figures (Lden, Lnight, N70, tracks, runways)
+data/external/basemap/  Natural Earth + OSM layers (from A1 Map 1) with provenance
+scripts/           independent A5 verification · A6 study-area extractor · 3D map builder · noise figures · A2 noise extract ·
                    Colab METAR/A3 fetch · synthetic noise inputs (pipeline testing only)
 tests/             test_a5.py (21) · test_a6.py (12) · test_noise.py (17) · fixtures/doc29_vol3 (Vol 3 reference tables)
 ```
@@ -110,8 +119,8 @@ Study area **20–23° N, 38–41° E** = the A2 ADS-B box and the A4 ERA5 grid 
 
 **Numbers:** 8.11 M people in 1,034,281 populated cells (23.3 % of Saudi Arabia's 34.87 M); 0.80 M within 10 km of the OEJN reference point, 3.72 M within 40 km.
 
-**Indicative route finding (atlas):** on the *published* tracks, the early RWY 34L legs pass over far more residents than 34C
-(≈ 84–110 k vs ≈ 7 k people within 3 km in the first 30 km). Flown trajectories (A2) and the noise model are needed before any conclusion.
+**Noise result (1 Oct, flown tracks):** for the same aircraft type, 34C and 34L departures reach similar numbers of residents;
+34C dominates the day's exposure because it carries 188 of 208 modelled departures and almost all widebodies.
 
 ---
 
@@ -157,4 +166,4 @@ team data repository). WorldPop data: CC BY 4.0 — cite *WorldPop (www.worldpop
 - **المطلوب لتشغيله على يوم 1 أكتوبر:**
   - A2: ملفات `a2_noise_extract.py`.
   - من Colab: METAR (الحرارة ونقطة الندى، ومنها الرطوبة، والـ QNH)، وهوية الطيارات (النوع والمحرك).
-- **المخرج الإبداعي:** `docs/atlas/OEJN_Noise_Atlas.html`، افتحوه في المتصفح.
+- **المخرج الرئيسي:** الخريطة الثلاثية الأبعاد `map3d/OEJN_Map3D_Noise.html` (للاستخدام المحلي فقط). افتحوها بدبل كليك، وفيها زر Results للنتائج والمنهجية.

@@ -19,7 +19,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from viz.noise_grid import grid500  # noqa: E402
 
 OUT = ROOT / "map3d"
 COPY = ["index.html", "studio.js", "studio.css", "flight-model.mjs", "observed-model.mjs", "observed-layer.mjs", "observed.css",
@@ -67,6 +66,7 @@ def patch():
 def noise_json() -> dict:
     import pandas as pd
     from viz.noise_map import map_block
+    from viz.noise_stats import noise_stats
     from pyproj import Transformer
     import yaml
     cfg = yaml.safe_load((ROOT / "config" / "noise.yaml").read_text())
@@ -77,7 +77,7 @@ def noise_json() -> dict:
     man = json.loads((ROOT / "data" / "noise" / "validation" / "noise_manifest.json").read_text())
     out = {"release": cfg["release_id"], "crs": "EPSG:32637", "arp_utm": [E0, N0], "modelled": man["flights_modelled"],
            "n": m["n"], "cell_km": m["cell_km"], "x0": m["x0"], "y0": m["y0"], "grids": m["grids"], "contours": m["contours"],
-           "paths": m["paths"], "places": m["places"],
+           "paths": m["paths"], "places": m["places"], "stats": noise_stats(ROOT),
            "pop": {"lden": [pick("Lden", f">={t} (cumulative)") for t in (45, 50, 55, 60, 65, 70)],
                    "lnight": [pick("Lnight", f">={t} (cumulative)") for t in (40, 45, 50, 55, 60, 65)],
                    "n70": [pick("N70", f">={t} events") for t in (1, 5, 10, 20, 50, 100)]},
