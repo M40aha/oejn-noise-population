@@ -9,13 +9,13 @@ scene:
   number of departures, coloured by runway, with a dashed ground shadow.
 - **Neighbourhood names** (OpenStreetMap, Arabic and English).
 - **Legend:** what each colour means and how many residents live in it.
-- **Live ▶ (illustrative):** while Map 2 plays a departure, the ground shows the instantaneous noise under the moving
+- **Live (illustrative):** while Map 2 plays a departure, the ground shows the instantaneous noise under the moving
   aircraft (bright) and the loudest level reached so far (faded), with a dashed line down from the aircraft. It follows
   Map 2's concept playback (published procedure, demo heights) and uses a typical A320 (ANP A320-211, NPD CFM565 LAmax) at
   full take-off / climb thrust with Doc 29 lateral attenuation. It is a teaching view; the study results are the
   Day–night / Night / Loud-events layers computed from the observed flights.
 - **– / +** in the panel header minimises / restores the panel (remembered in the browser).
-- **Results ↗:** headline numbers, people per noise band, runway and aircraft comparisons, WHO indicators, method,
+- **Results :** headline numbers, people per noise band, runway and aircraft comparisons, WHO indicators, method,
   validation and limits.
 
 The team repository is **not modified**. Its files are copied unchanged (sha256 in `SOURCE.json`). Only two of them get a
