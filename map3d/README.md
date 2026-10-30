@@ -28,11 +28,6 @@ small patch, made and checked by `scripts/build_map3d.py`:
 - **Double-click:** `OEJN_Map3D_Noise.html`. One file with everything embedded; open it in Chrome or Edge with WebGL.
 - **Or serve the folder:** `python -m http.server 8000` inside `map3d/`, then open http://127.0.0.1:8000/.
 
-## Rebuild after a new noise run or a new Map 2
 
-```bash
-PYTHONPATH=src python -m noise.run
-PYTHONPATH=src python scripts/build_map3d.py ../Research-and-Innovation-department-SANS-project-main
-```
 
 
