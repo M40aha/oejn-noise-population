@@ -98,7 +98,7 @@ $$L_{den} = 10\lg\left[\frac{T_0}{86400}\left(\sum_{day}10^{SEL/10} + \sum_{eve}
 
 ## 3D map
 
-**`map3d/OEJN_Map3D_Noise.html`:** download it and open it in Chrome or Edge. It is the team's Map 2 with a noise layer:
+**[Open the 3D map](https://m40aha.github.io/oejn-noise-population/map3d/)** (Chrome or Edge), or download `map3d/OEJN_Map3D_Noise.html` and open it locally. It is the team's Map 2 with a noise layer:
 
 - the noise surface (Lden, Lnight, N70) in green → red;
 - typical flight paths in 3D;
