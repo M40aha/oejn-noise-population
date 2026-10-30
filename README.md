@@ -4,7 +4,7 @@ Noise of the **observed jet departures** from King Abdulaziz International Airpo
 **1 October 2026**, and the number of residents exposed. The noise is computed with **ECAC Doc 29, 5th Edition**.
 Part of the SANS research *OEJN Noise–Fuel–Capacity* (layers A5 aircraft-noise data and A6 population).
 
-![3D noise map: day–night level (Lden) over Jeddah](docs/img/map3d_lden.png)
+
 
 ## Results: 1 Oct 2026
 
