@@ -35,9 +35,4 @@ PYTHONPATH=src python -m noise.run
 PYTHONPATH=src python scripts/build_map3d.py ../Research-and-Innovation-department-SANS-project-main
 ```
 
-## Local use only
 
-The noise layer is derived from Wingbits ADS-B data (evaluation use, via A2). Do **not** deploy this folder to a public
-site (e.g. GitHub Pages) until the team has confirmed that publishing aggregated results is permitted. The map shows
-aggregates only, never individual flights. The procedure playback inside Map 2 is the team's illustrative demo, as in
-the original.
